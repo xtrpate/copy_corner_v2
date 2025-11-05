@@ -22,10 +22,10 @@ try:
 except ImportError:
     messagebox.showerror("Missing Library", "Please install matplotlib: pip install matplotlib")
 
-# --- Asset Path Setup ---
+
+#---Asset Path Constructor---
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame4"
-
 
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
@@ -35,6 +35,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminReportFrame(tk.Frame):
+    #---Initializes Report UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -48,7 +49,6 @@ class AdminReportFrame(tk.Frame):
         )
         self.canvas.place(x=0, y=0)
 
-        # --- UI Elements ---
         self.canvas.create_rectangle(15.0, 24.0, 886.0, 564.0, fill="#FFF6F6", outline="#000000")
         self.canvas.create_rectangle(37.0, 42.0, 866.0, 546.0, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(53.0, 50.0, 256.0, 539.0, fill="#FFFFFF", outline="#000000")
@@ -73,10 +73,8 @@ class AdminReportFrame(tk.Frame):
         self.canvas.create_text(279.0, 48.0, anchor="nw", text="Reports", fill="#000000", font=("Inter Bold", 36))
         self.canvas.create_rectangle(265.0, 41.0, 266.0, 546.0, fill="#000000", outline="#000000")
 
-        # --- MODIFIED: Taller Filter Box ---
         self.canvas.create_rectangle(281.0, 93.0, 844.0, 150.0, fill="#F0F0F0", outline="#CCCCCC")
 
-        # --- NEW: Date Preset Dropdown ---
         self.canvas.create_text(291.0, 110.0, anchor="w", text="Date Preset:", fill="#000000", font=("Inter Bold", 12))
         self.date_preset_var = tk.StringVar(value="This Month")
         self.date_preset_combo = ttk.Combobox(
@@ -87,14 +85,13 @@ class AdminReportFrame(tk.Frame):
         self.date_preset_combo.place(x=400, y=98)
         self.date_preset_combo.bind("<<ComboboxSelected>>", self.on_preset_selected)
 
-        # --- MODIFIED: Custom Date Range (now in row 2) ---
         self.canvas.create_text(291.0, 130.0, anchor="w", text="Custom Date:", fill="#000000", font=("Inter Bold", 12))
         default_end_date = datetime.now().date()
         default_start_date = default_end_date - timedelta(days=29)
         self.start_date_entry = DateEntry(self, width=12, background='darkblue', foreground='white', borderwidth=2,
                                           date_pattern='yyyy-mm-dd', year=default_start_date.year,
                                           month=default_start_date.month, day=default_start_date.day,
-                                          state="disabled")  # Disabled by default
+                                          state="disabled")
         self.start_date_entry.place(x=400, y=125)
 
         self.date_dash_label = Label(self, text="-", bg="#F0F0F0", font=("Inter Bold", 12))
@@ -102,10 +99,9 @@ class AdminReportFrame(tk.Frame):
         self.end_date_entry = DateEntry(self, width=12, background='darkblue', foreground='white', borderwidth=2,
                                         date_pattern='yyyy-mm-dd', year=default_end_date.year,
                                         month=default_end_date.month, day=default_end_date.day,
-                                        state="disabled")  # Disabled by default
+                                        state="disabled")
         self.end_date_entry.place(x=520, y=125)
 
-        # --- MODIFIED: Group By (moved right) ---
         self.canvas.create_text(560.0, 110.0, anchor="w", text="Group by:", fill="#000000", font=("Inter Bold", 12))
         self.group_by_var = tk.StringVar(value="Daily")
         self.group_by_combo = ttk.Combobox(self, textvariable=self.group_by_var,
@@ -113,16 +109,14 @@ class AdminReportFrame(tk.Frame):
                                            font=("Inter", 11))
         self.group_by_combo.place(x=635, y=100)
 
-        # --- MODIFIED: Replaced old button with new styled, rounded button ---
         self.create_rounded_button_widget(
             x=770, y=112, w=60, h=28,
             text="Apply",
             command=self.update_reports
         )
 
-        # --- MODIFIED: Stats frame moved down ---
         stat_frame = Frame(self, bg="#FFFFFF")
-        stat_frame.place(x=280, y=162, width=560, height=140)  # y was 152
+        stat_frame.place(x=280, y=162, width=560, height=140)
 
         self.stat_labels = {}
         box_width = 180
@@ -145,9 +139,8 @@ class AdminReportFrame(tk.Frame):
             lbl_value.pack(side="bottom", fill="x", pady=(0, 5))
             self.stat_labels[key] = lbl_value
 
-        # --- MODIFIED: Chart frame moved down ---
         chart_frame = Frame(self, bd=1, relief="solid", bg="#FFFFFF")
-        chart_frame.place(x=274, y=313, width=316, height=234)  # y was 303
+        chart_frame.place(x=274, y=313, width=316, height=234)
         chart_frame.pack_propagate(False)
         Label(chart_frame, text="Revenue Over Time", font=("Inter Bold", 14), bg="#FFFFFF").pack(side="top", pady=5)
         self.fig = Figure(figsize=(3.5, 2), dpi=100)
@@ -156,9 +149,8 @@ class AdminReportFrame(tk.Frame):
         self.chart_canvas_widget = self.chart_canvas.get_tk_widget()
         self.chart_canvas_widget.pack(side="top", fill="both", expand=True, padx=5, pady=(0, 5))
 
-        # --- MODIFIED: Table frame moved down ---
         table_frame = Frame(self, bd=1, relief="solid", bg="#FFFFFF")
-        table_frame.place(x=597, y=313, width=254, height=234)  # y was 303
+        table_frame.place(x=597, y=313, width=254, height=234)
         table_frame.grid_propagate(False)
         Label(table_frame, text="Top Users by Spend", font=("Inter Bold", 14), bg="#FFFFFF").pack(side="top", pady=5,
                                                                                                   anchor="w", padx=10)
@@ -179,29 +171,27 @@ class AdminReportFrame(tk.Frame):
         self.tree.grid(row=1, column=0, sticky="nsew", padx=(5, 0), pady=(0, 5))
         tree_scrollbar.grid(row=1, column=1, sticky="ns", pady=(0, 5))
 
-        self.on_preset_selected()  # Call this to set initial state
+        self.on_preset_selected()
         self.update_reports()
 
-    # --- NEW: Function to handle preset selection ---
+    #---Handles Date Preset---
     def on_preset_selected(self, event=None):
         preset = self.date_preset_var.get()
         if preset == "Custom":
             self.start_date_entry.config(state="normal")
             self.end_date_entry.config(state="normal")
-            # We can't disable a label, but we can change its color
             self.date_dash_label.config(fg="black")
         else:
             self.start_date_entry.config(state="disabled")
             self.end_date_entry.config(state="disabled")
-            self.date_dash_label.config(fg="grey")  # Grey out the dash
+            self.date_dash_label.config(fg="grey")
 
-    # --- MODIFIED: update_reports now reads from the new preset combo ---
+    #---Updates All Reports---
     def update_reports(self):
         try:
             preset = self.date_preset_var.get()
             group_by = self.group_by_var.get()
 
-            # 1. Determine Date Range
             if preset == "Custom":
                 start_date = self.start_date_entry.get_date()
                 end_date = self.end_date_entry.get_date()
@@ -218,23 +208,20 @@ class AdminReportFrame(tk.Frame):
                     end_date = start_date + timedelta(days=6)
                 elif preset == "This Month":
                     start_date = today.replace(day=1)
-                    # Find first day of next month, then subtract 1 day
                     next_month = (start_date + timedelta(days=32)).replace(day=1)
                     end_date = next_month - timedelta(days=1)
                 elif preset == "This Year":
                     start_date = today.replace(month=1, day=1)
                     end_date = today.replace(month=12, day=31)
                 elif preset == "All Time":
-                    start_date = date(1970, 1, 1)  # A long time ago
-                    end_date = date(2999, 12, 31)  # Far in the future
+                    start_date = date(1970, 1, 1)
+                    end_date = date(2999, 12, 31)
 
-                # Update the disabled DateEntry widgets to show the range
                 self.start_date_entry.set_date(start_date)
                 self.end_date_entry.set_date(end_date)
 
             print(f"Updating reports from {start_date} to {end_date}, grouped {group_by}")
 
-            # 2. Run all updates
             self.update_stat_boxes(start_date, end_date)
             self.update_revenue_chart(start_date, end_date, group_by)
             self.update_top_users_table(start_date, end_date)
@@ -243,6 +230,7 @@ class AdminReportFrame(tk.Frame):
             messagebox.showerror("Update Error", f"Failed to update reports:\n{e}", parent=self)
             print(f"Error updating reports: {e}")
 
+    #---Updates Statistics Boxes---
     def update_stat_boxes(self, start_date, end_date):
         conn = None
         cursor = None
@@ -297,14 +285,14 @@ class AdminReportFrame(tk.Frame):
         self.stat_labels["pages_printed"].config(text=f"{pages_printed:,}")
         self.stat_labels["avg_value"].config(text=f"₱{avg_payment_value:,.2f}")
 
-    # --- **** MODIFIED: Update Revenue Chart **** ---
+    #---Updates Revenue Chart---
     def update_revenue_chart(self, start_date, end_date, group_by):
         conn = None
         cursor = None
         df = pd.DataFrame()
         plot_type = 'line'
         x_label = "Date"
-        rotate_labels = False  # Flag to control label rotation
+        rotate_labels = False
 
         try:
             conn = get_db_connection()
@@ -325,14 +313,12 @@ class AdminReportFrame(tk.Frame):
                 """
                 plot_type = 'bar'
                 x_label = "Day of the Week"
-                rotate_labels = True  # Rotate "Wednesday", etc.
+                rotate_labels = True
 
 
             elif group_by == "Weekly":
                 query = f"""
                         SELECT 
-                            -- This is the new, simpler logic:
-                            -- It groups days 1-7 as '1', 8-14 as '2', 15-21 as '3', etc.
                             FLOOR((DAY(payment_timestamp) - 1) / 7) + 1 as week_num,
                             SUM(payment_amount) as revenue_total
                         {query_base}
@@ -355,7 +341,7 @@ class AdminReportFrame(tk.Frame):
                 """
                 plot_type = 'bar'
                 x_label = "Month"
-                rotate_labels = True  # Rotate "November 2025", etc.
+                rotate_labels = True
 
             cursor.execute(query, params)
             results = cursor.fetchall()
@@ -368,16 +354,12 @@ class AdminReportFrame(tk.Frame):
                     df['date_group'] = 'Week ' + df['week_num'].astype(str)
                 elif group_by == "Daily":
                     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-                    # Convert results to a dictionary for easy lookup
                     data_dict = {item['date_group']: item['revenue_total'] for item in results}
-                    # Build the DataFrame in the correct order
                     df = pd.DataFrame({'date_group': days})
                     df['revenue_total'] = df['date_group'].map(data_dict).fillna(0.0)
 
-                # --- FIX: Convert 'Monthly' date_group to string to prevent auto-formatting ---
                 elif group_by == "Monthly":
                     df['date_group'] = df['date_group'].astype(str)
-                # --- END FIX ---
 
         except mysql.connector.Error as err:
             print(f"DB Error fetching chart data: {err}")
@@ -389,7 +371,6 @@ class AdminReportFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
-        # --- Plotting ---
         self.ax.clear()
         if not df.empty:
             x_data = df['date_group']
@@ -422,8 +403,7 @@ class AdminReportFrame(tk.Frame):
             print("Warning: tight_layout failed for chart.")
         self.chart_canvas.draw()
 
-    # --- **** END MODIFICATION **** ---
-
+    #---Updates Top Users Table---
     def update_top_users_table(self, start_date, end_date):
         conn = None
         cursor = None
@@ -486,19 +466,23 @@ class AdminReportFrame(tk.Frame):
         else:
             self.tree.insert("", tk.END, values=("No users found", "", "", ""))
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -509,27 +493,29 @@ class AdminReportFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
-    # --- NEW: Function to create a styled, rounded button on the canvas ---
+    #---Creates Action Button---
     def create_rounded_button_widget(self, x, y, w, h, text, command=None):
-        """Creates a black, rounded button on the canvas."""
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10,
-                               fill="#000000",  # Black background
+                               fill="#000000",
                                outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center",
-                                      fill="#FFFFFF",  # White text
+                                      fill="#FFFFFF",
                                       font=("Inter Bold", 11))
 
         button_tag = f"canvas_btn_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
-            self.canvas.itemconfig(rect, fill="#333333")  # Dark grey hover
+            self.canvas.itemconfig(rect, fill="#333333")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
-            self.canvas.itemconfig(rect, fill="#000000")  # Black normal
+            self.canvas.itemconfig(rect, fill="#000000")
             self.config(cursor="")
 
         self.canvas.addtag_withtag(button_tag, rect)
@@ -538,21 +524,27 @@ class AdminReportFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
+    #---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
+    #---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
+    #---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
+    #---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
+    #---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?", parent=self):
             self.controller.show_login_frame()

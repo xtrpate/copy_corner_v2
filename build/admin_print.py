@@ -13,6 +13,7 @@ OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame4"
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -21,6 +22,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminPrintFrame(tk.Frame):
+    #---Initializes Print Job UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -141,6 +143,7 @@ class AdminPrintFrame(tk.Frame):
         self.add_print_job_buttons()
         self.load_print_jobs()
 
+    #---Loads Print Jobs---
     def load_print_jobs(self):
         self.job_row_widgets.clear()
         self.selected_job_row = None
@@ -151,6 +154,7 @@ class AdminPrintFrame(tk.Frame):
         self.notes_text.delete("1.0", tk.END)
         self.selected_job_ref[0] = None
 
+    #---Database: Fetches Jobs---
     def fetch_print_jobs(self):
         conn = None
         cursor = None
@@ -191,6 +195,7 @@ class AdminPrintFrame(tk.Frame):
             if conn and conn.is_connected():
                 conn.close()
 
+    #---Displays Jobs in List---
     def display_print_jobs(self, jobs_to_display=None):
         for widget in self.job_content_frame.winfo_children():
             widget.destroy()
@@ -287,8 +292,8 @@ class AdminPrintFrame(tk.Frame):
         self.on_frame_configure(self.job_list_canvas)
         self.job_list_canvas.yview_moveto(0)
 
+    #---Sets Row Color---
     def set_row_color(self, row_frame, index, state):
-        """Helper function to set the background color of a row and its children."""
         if not row_frame or not row_frame.winfo_exists():
             return
 
@@ -303,8 +308,8 @@ class AdminPrintFrame(tk.Frame):
         for widget in row_frame.winfo_children():
             widget.config(bg=color)
 
+    #---Handles Row Click---
     def on_row_click(self, event, row_frame, index, job_data):
-        """Handles clicking on a request row."""
         if self.selected_job_row and self.selected_job_row.winfo_exists():
             self.set_row_color(self.selected_job_row, self.selected_row_index, "default")
 
@@ -317,20 +322,20 @@ class AdminPrintFrame(tk.Frame):
 
         self.job_list_canvas.yview_moveto(row_frame.winfo_y() / self.job_content_frame.winfo_height())
 
+    #---Handles Row Hover---
     def on_row_enter(self, event, row_frame, index):
-        """Handles mouse hovering over a request row."""
         if row_frame != self.selected_job_row:
             self.set_row_color(row_frame, index, "hover")
         self.config(cursor="hand2")
 
+    #---Handles Row Leave---
     def on_row_leave(self, event, row_frame, index):
-        """Handles mouse leaving a request row."""
         if row_frame != self.selected_job_row:
             self.set_row_color(row_frame, index, "default")
         self.config(cursor="")
 
+    #---Handles Key Navigation---
     def navigate_jobs(self, direction):
-        """Handles Up/Down arrow key navigation."""
         if not self.job_row_widgets:
             return
 
@@ -364,6 +369,7 @@ class AdminPrintFrame(tk.Frame):
 
         self.on_row_click(None, row_to_select, new_index, job_data)
 
+    #---Database: Filters Jobs---
     def filter_print_jobs(self, username_filter, status_filter, return_jobs=False):
         conn = None
         cursor = None
@@ -421,6 +427,7 @@ class AdminPrintFrame(tk.Frame):
 
         return [] if return_jobs else None
 
+    #---Updates Details Panel---
     def update_job_details(self, job):
         self.canvas.delete("job_details")
         self.notes_text.delete("1.0", tk.END)
@@ -455,15 +462,16 @@ class AdminPrintFrame(tk.Frame):
         if notes:
             self.notes_text.insert("1.0", notes)
 
+    #---Initializes Action Buttons---
     def add_print_job_buttons(self):
 
+        #---Database: Changes Job Status---
         def change_status(new_status, deduct_inventory=False):
             job = self.selected_job_ref[0]
             if not job:
                 messagebox.showwarning("No Selection", "Please select a job first.", parent=self)
                 return False
 
-            # CORRECTED: Inventory check is now *after* the 'if not job' block
             if new_status == "Approved":
                 try:
                     pages = int(job.get('pages', 0))
@@ -654,6 +662,7 @@ class AdminPrintFrame(tk.Frame):
                 if conn and conn.is_connected(): conn.close()
             return success
 
+        #---Handles Start Print Button---
         def start_print():
             job = self.selected_job_ref[0]
             if not job:
@@ -702,6 +711,7 @@ class AdminPrintFrame(tk.Frame):
                 else:
                     print(f"Could not send notification for job {job_id_to_notify}: Missing ID.")
 
+        #---Handles Message User Button---
         def message_user():
             job = self.selected_job_ref[0]
             if not job:
@@ -736,6 +746,7 @@ class AdminPrintFrame(tk.Frame):
                 if cursor: cursor.close()
                 if conn and conn.is_connected(): conn.close()
 
+        #---Handles Download Button---
         def download_file():
             job = self.selected_job_ref[0]
             if not job:
@@ -788,6 +799,7 @@ class AdminPrintFrame(tk.Frame):
                 if conn and conn.is_connected():
                     conn.close()
 
+        #---Creates Action Button UI---
         def create_action_button(x1, y1, x2, y2, text, command):
             rect_tag = f"btn_rect_{text.replace(' ', '_').lower()}"
             text_tag = f"btn_text_{text.replace(' ', '_').lower()}"
@@ -811,58 +823,73 @@ class AdminPrintFrame(tk.Frame):
         create_action_button(876, 446, 1039, 477, "Download File", download_file)
         create_action_button(877, 483, 1040, 514, "Message User", message_user)
 
+    #---Handles Filter Button Click---
     def on_filter_click(self, event=None):
         username = self.search_entry.get().strip()
         status = self.status_var.get().strip()
         self.filter_print_jobs(username, status)
 
+    #---Handles Filter Button Hover---
     def on_filter_hover(self, event):
         self.canvas.itemconfig("filter_btn_rect", fill="#E8E8E8")
         self.config(cursor="hand2")
 
+    #---Handles Filter Button Leave---
     def on_filter_leave(self, event):
         self.canvas.itemconfig("filter_btn_rect", fill="#FFFFFF")
         self.config(cursor="")
 
+    #---Handles Search Field Hover---
     def on_search_hover(self, event):
         self.search_entry.config(highlightbackground="#000000", highlightcolor="#000000")
 
+    #---Handles Search Field Leave---
     def on_search_leave(self, event):
         self.search_entry.config(highlightbackground="#CCCCCC", highlightcolor="#CCCCCC")
 
+    #---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
+    #---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
+    #---Navigation: Open Report Page---
     def open_admin_report(self):
         self.controller.show_admin_report()
 
+    #---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
+    #---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?", parent=self):
             self.controller.show_login_frame()
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command:
                 command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -873,12 +900,12 @@ class AdminPrintFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
+    #---Updates Scrollable Area---
     def on_frame_configure(self, canvas):
-        """Reset the scroll region to encompass the inner frame"""
         canvas.configure(scrollregion=canvas.bbox("all"))
 
+    #---Handles Mouse Wheel---
     def _on_mousewheel(self, event, canvas):
-        """Scroll the canvas on mousewheel event"""
         scroll_info = canvas.yview()
         if scroll_info[0] == 0.0 and scroll_info[1] == 1.0:
             return
@@ -890,14 +917,14 @@ class AdminPrintFrame(tk.Frame):
             if scroll_info[1] < 1.0:
                 canvas.yview_scroll(1, "units")
 
+    #---Binds Mouse Wheel---
     def _bind_mousewheel(self, event, canvas):
-        """Bind mousewheel scrolling when mouse enters canvas"""
         self.bind_all("<MouseWheel>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-4>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-5>", lambda ev: self._on_mousewheel(ev, canvas))
 
+    #---Unbinds Mouse Wheel---
     def _unbind_mousewheel(self, event):
-        """Unbind mousewheel scrolling when mouse leaves canvas"""
         self.unbind_all("<MouseWheel>")
         self.unbind_all("<Button-4>")
         self.unbind_all("<Button-5>")

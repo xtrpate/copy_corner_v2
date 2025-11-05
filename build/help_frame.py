@@ -5,10 +5,9 @@ import math
 import sys
 import subprocess
 import shutil
-import os  # <-- ADDED
+import os
 from utils import get_db_connection, round_rectangle
 
-# Import frame classes needed for navigation
 from printer_frame import PrinterFrame
 from user_frame import UserFrame
 from prices_frame import PricesFrame
@@ -17,51 +16,49 @@ OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame2"
 
 
-# --- NEW HELPER FUNCTION ---
+#---Finds Resource Path---
 def get_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        # Not running in a bundle, use the script's directory
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
-    # This function is now only for this frame's *image* assets
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
         print(f"Warning: Asset not found at {asset_file}")
     return asset_file
 
 
-# --------- Rounded border helper ----------
+#---Creates Rounded Box---
 def rounded_box(cnv, x1, y1, x2, y2, r=12, fill="#FFFFFF", outline="#000000", width=1):
     r = max(0, min(int(r), int(min(x2 - x1, y2 - y1) / 2)))
     pts = []
 
+    #---Calculates Arc---
     def arc(cx, cy, a0, a1, step=6):
         step = step if a1 >= a0 else -step
         for a in range(a0, a1 + step, step):
             rad = math.radians(a)
             pts.extend([cx + r * math.cos(rad), cy + r * math.sin(rad)])
 
-    pts += [x1 + r, y1, x2 - r, y1];
+    pts += [x1 + r, y1, x2 - r, y1]
     arc(x2 - r, y1 + r, 270, 360)
-    pts += [x2, y2 - r];
+    pts += [x2, y2 - r]
     arc(x2 - r, y2 - r, 0, 90)
-    pts += [x1 + r, y2];
+    pts += [x1 + r, y2]
     arc(x1 + r, y2 - r, 90, 180)
-    pts += [x1, y1 + r];
+    pts += [x1, y1 + r]
     arc(x1 + r, y1 + r, 180, 270)
     return cnv.create_polygon(pts, smooth=True, fill=fill, outline=outline, width=width)
 
 
-# --- MAIN HELP FRAME CLASS ---
 class HelpFrame(tk.Frame):
+    #---Initializes Help UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -94,25 +91,22 @@ class HelpFrame(tk.Frame):
             messagebox.showerror("Asset Error", f"Could not load assets for HelpFrame:\n{e}")
             return
 
-        # ======= OUTER CONTAINER + HEADER =======
         rounded_box(canvas, 22.0, 16.0, 837.0, 518.0, r=0, fill=WHITE, outline=BLACK, width=2)
         rounded_box(canvas, 22.0, 16.0, 837.0, 101.0, r=0, fill=BLACK, outline=BLACK, width=2)
         canvas.create_text((22 + 837) / 2, (16 + 101) / 2, text="Help", fill=WHITE, font=("Inter Bold", -40),
                            anchor="center")
         canvas.create_rectangle(239.0, 16.0, 240.0, 518.0, fill=BLACK, outline="")
 
-        # ======= CARDS (Adjust Y slightly if needed) =======
         card_y_offset = -7
         rounded_box(canvas, 250.0, 118.0 + card_y_offset, 553.0, 283.0 + card_y_offset, r=14, fill=WHITE, outline=BLACK,
-                    width=1)  # FAQ
+                    width=1)
         rounded_box(canvas, 563.0, 118.0 + card_y_offset, 790.0, 256.0 + card_y_offset, r=14, fill=WHITE, outline=BLACK,
-                    width=1)  # Contact
+                    width=1)
         rounded_box(canvas, 250.0, 293.0 + card_y_offset, 553.0, 458.0 + card_y_offset, r=14, fill=WHITE, outline=BLACK,
-                    width=1)  # User Guide
+                    width=1)
         rounded_box(canvas, 567.0, 270.0 + card_y_offset, 833.0, 499.0 + card_y_offset, r=14, fill=WHITE, outline=BLACK,
-                    width=1)  # About
+                    width=1)
 
-        # ======= TEXT/ICONS INSIDE CARDS (Adjust Y slightly) =======
         text_y_offset = card_y_offset
         canvas.create_text(605.0, 153.0 + text_y_offset, anchor="nw", text="copycorner56@gmail.com", fill=BLACK,
                            font=("Inter Bold", -13))
@@ -150,25 +144,22 @@ class HelpFrame(tk.Frame):
                                  " inventory for copy corner,\n Includes sales and stock ."), fill=BLACK,
                            font=("Inter", -16))
 
-        # --- Left Menu Buttons (Adjust Y slightly) ---
         menu_y_offset = -7
         self.create_rounded_menu_button(46, 129 + menu_y_offset, 161, 38, "Profile", self.open_user_py)
         self.create_rounded_menu_button(46, 178 + menu_y_offset, 161, 38, "Print Request", self.open_printer_py)
         self.create_rounded_menu_button(46, 227 + menu_y_offset, 161, 38, "Pricelist", self.open_prices_py)
         self.create_rounded_menu_button(46, 276 + menu_y_offset, 161, 38, "Notification", self.open_notification_py)
 
-        # --- Other Buttons (Adjust Y slightly) ---
         button_7 = Button(self, image=self.button_image_7, borderwidth=0, highlightthickness=0,
                           command=lambda: print("Report a Problem clicked"), relief="flat")
         button_7.place(x=590.0, y=209.0 + card_y_offset, width=165.0, height=33.0)
         button_7.configure(text="Report a Problem", compound="center", fg=WHITE, font=FONT_BTN_SM)
 
         button_8 = Button(self, image=self.button_image_8, borderwidth=0, highlightthickness=0,
-                          command=self.download_user_manual, relief="flat")  # <-- UPDATED
+                          command=self.download_user_manual, relief="flat")
         button_8.place(x=289.0, y=367.0 + card_y_offset, width=221.0, height=64.0)
         button_8.configure(text="View Full User Manual(PDF)", compound="center", fg=WHITE, font=FONT_BTN_MED)
 
-        # ======= LEFT ICONS AS LABELS (Adjust Y slightly) =======
         icon_y_offset = menu_y_offset
         lbl_edit = Label(self, image=self.icon_edit, bg=WHITE, bd=0)
         lbl_pr = Label(self, image=self.icon_pr, bg=WHITE, bd=0)
@@ -183,21 +174,24 @@ class HelpFrame(tk.Frame):
         self.make_icon_clickable(lbl_sheet, self.open_prices_py)
         self.make_icon_clickable(lbl_bell, self.open_notification_py)
 
-    # --- Reusable Rounded Menu Button Method ---
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + 35, y + (h / 2), text=text, anchor="w", fill="#000000",
                                       font=("Inter Bold", 15))
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
-            self.canvas.itemconfig(rect, fill="#E8E8E8");
+            self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
-            self.canvas.itemconfig(rect, fill="#FFFFFF");
+            self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
 
         for tag in (rect, txt):
@@ -205,24 +199,22 @@ class HelpFrame(tk.Frame):
             self.canvas.tag_bind(tag, "<Enter>", on_hover)
             self.canvas.tag_bind(tag, "<Leave>", on_leave)
 
+    #---Makes Icon Clickable---
     def make_icon_clickable(self, widget, command):
         widget.bind("<Button-1>", lambda e: command())
         widget.bind("<Enter>", lambda e: self.config(cursor="hand2"))
         widget.bind("<Leave>", lambda e: self.config(cursor=""))
 
-    # --- UPDATED FUNCTION for downloading the manual ---
+    #---Handles Manual Download---
     def download_user_manual(self):
-        # 1. Define the relative path to the PDF (inside the 'assets' folder)
         relative_file_path = "assets/Help.pdf"
 
-        # 2. Get the absolute, correct path (works for script or .exe)
         try:
             source_file = Path(get_resource_path(relative_file_path))
         except Exception as e:
             messagebox.showerror("Error", f"Could not determine file path: {e}", parent=self)
             return
 
-        # 3. Check if the source file actually exists
         if not source_file.is_file():
             messagebox.showerror("File Not Found",
                                  f"The user manual 'Help.pdf' could not be found.\n"
@@ -230,7 +222,6 @@ class HelpFrame(tk.Frame):
                                  parent=self)
             return
 
-        # 4. Open the "Save As" dialog
         save_path = filedialog.asksaveasfilename(
             initialfile="Help.pdf",
             defaultextension=".pdf",
@@ -238,10 +229,8 @@ class HelpFrame(tk.Frame):
             title="Save User Manual As..."
         )
 
-        # 5. If the user selected a path (didn't cancel)
         if save_path:
             try:
-                # 6. Copy the file from the source to the chosen destination
                 shutil.copy2(source_file, save_path)
                 messagebox.showinfo("Download Complete",
                                     f"User manual saved successfully to:\n{save_path}",
@@ -251,15 +240,18 @@ class HelpFrame(tk.Frame):
                                      f"Failed to save the file. Error:\n{e}",
                                      parent=self)
 
-    # --- Navigation Methods ---
+    #---Navigation: Open User Page---
     def open_user_py(self):
         self.controller.show_frame(UserFrame)
 
+    #---Navigation: Open Print Page---
     def open_printer_py(self):
         self.controller.show_frame(PrinterFrame)
 
+    #---Navigation: Open Prices Page---
     def open_prices_py(self):
         self.controller.show_frame(PricesFrame)
 
+    #---Navigation: Open Notification Page---
     def open_notification_py(self):
         self.controller.show_notification_frame()

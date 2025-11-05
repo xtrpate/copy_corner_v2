@@ -9,17 +9,15 @@ from utils import get_db_connection, round_rectangle
 import random
 import string
 import os
-import io  # <-- 1. ADDED THIS IMPORT
+import io
 from PIL import Image, ImageTk
 
-# --- Asset Path Setup ---
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame6"
 
 
-# --- 2. REMOVED THE PROFILE_PIC_PATH VARIABLE ---
-
-
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -28,6 +26,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminUserFrame(tk.Frame):
+    #---Initializes User UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -45,7 +44,6 @@ class AdminUserFrame(tk.Frame):
         )
         self.canvas.place(x=0, y=0)
 
-        # --- Background Elements ---
         self.canvas.create_rectangle(15, 15, 905 - 15, 570 - 15, fill="#FFF6F6", outline="#CCCCCC")
         self.canvas.create_rectangle(35, 37, 864, 541, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(44, 46, 247, 535, fill="#FFFFFF", outline="#000000")
@@ -64,9 +62,8 @@ class AdminUserFrame(tk.Frame):
 
         self.canvas.create_rectangle(266.0, 87.0, 630.0, 162.0, fill="#FFFFFF", outline="#000000")
 
-        # --- Picture Area (Modified) ---
-        self.current_user_photo = None  # Holds the photo to prevent garbage collection
-        self.PIC_BOX = (273.0, 92.0, 349.0, 158.0)  # (x1, y1, x2, y2)
+        self.current_user_photo = None
+        self.PIC_BOX = (273.0, 92.0, 349.0, 158.0)
 
         self.pic_area_rect = self.canvas.create_rectangle(
             self.PIC_BOX[0], self.PIC_BOX[1], self.PIC_BOX[2], self.PIC_BOX[3],
@@ -81,7 +78,6 @@ class AdminUserFrame(tk.Frame):
             font=("Inter", 10),
             justify="center"
         )
-        # --- End Picture Area ---
 
         self.canvas.create_rectangle(265.0, 171.0, 441.0, 225.0, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(455.0, 171.0, 631.0, 225.0, fill="#FFFFFF", outline="#000000")
@@ -90,7 +86,6 @@ class AdminUserFrame(tk.Frame):
         self.canvas.create_rectangle(266.0, 288.0, 630.0, 439.0, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(266.0, 443.0, 630.0, 535.0, fill="#FFFFFF", outline="#000000")
 
-        # --- Labels for Details ---
         self.canvas.create_text(366.0, 98.0, anchor="nw", text="Name:", fill="#000000", font=("Inter Bold", 13 * -1))
         self.canvas.create_text(366.0, 118.0, anchor="nw", text="Role:", fill="#000000", font=("Inter Bold", 12 * -1))
         self.canvas.create_text(366.0, 138.0, anchor="nw", text="Member since:", fill="#000000",
@@ -110,7 +105,6 @@ class AdminUserFrame(tk.Frame):
         self.canvas.create_text(276.0, 387.0, anchor="nw", text="Contact:", fill="#000000", font=("Inter", 12 * -1))
         self.canvas.create_text(276.0, 407.0, anchor="nw", text="Password:", fill="#000000", font=("Inter", 12 * -1))
 
-        # --- Action Buttons ---
         self.create_rounded_button(421.0, 451.0, 102.0, 25.0, "Reset Password", self.reset_password,
                                    fill="#000000", text_color="#FFFFFF", outline_color="#000000", outline_width=1)
         self.create_rounded_button(533.0, 451.0, 88.0, 25.0, "Disable User", self.disable_selected_user,
@@ -118,12 +112,10 @@ class AdminUserFrame(tk.Frame):
         self.create_rounded_button(533.0, 491.0, 88.0, 25.0, "Activate User", self.activate_selected_user,
                                    fill="#28A745", text_color="#FFFFFF", outline_color="#1D7A32", outline_width=1)
 
-        # --- Recent Activity Area ---
         self.canvas.create_text(286.0, 451.0, anchor="nw", text="Recent Activity", fill="#000000",
                                 font=("Inter Bold", 15 * -1))
         round_rectangle(self.canvas, 276.0, 475.0, 420.0, 525.0, r=5, fill="#F8F9FA", outline="#E0E0E0")
 
-        # --- User List Area ---
         self.canvas.create_rectangle(635.0, 37.0, 638.0, 542.0, fill="#000000", outline="#000000")
         self.canvas.create_text(646.0, 55.0, anchor="nw", text="Search", fill="#000000", font=("Inter Bold", 14 * -1))
 
@@ -132,7 +124,6 @@ class AdminUserFrame(tk.Frame):
         self.search_entry.place(x=704.0, y=50.0, width=134.0, height=25.0)
         self.search_entry.bind("<KeyRelease>", self.on_user_search)
 
-        # --- Scrollable User List ---
         main_list_container = tk.Frame(self, bg="white", bd=1, relief="solid")
         main_list_container.place(x=646.0, y=83.0, width=212.0, height=448.0)
         header_frame = tk.Frame(main_list_container, bg="white", height=35)
@@ -170,7 +161,6 @@ class AdminUserFrame(tk.Frame):
         self.user_content_frame.bind("<Enter>", lambda e: self._bind_mousewheel(e, self.user_list_canvas))
         self.user_content_frame.bind("<Leave>", lambda e: self._unbind_mousewheel(e))
 
-        # --- Sidebar Buttons ---
         sidebar_y_start = 150
         sidebar_y_offset = 56
         self.create_rounded_menu_button(71, sidebar_y_start, 151, 38, "Dashboard", self.open_admin_dashboard)
@@ -186,9 +176,9 @@ class AdminUserFrame(tk.Frame):
 
         self.load_users()
 
+    #---Creates Action Button---
     def create_rounded_button(self, x, y, w, h, text, command, fill, text_color, outline_color="#000000",
                               outline_width=1):
-        """Creates a generic rounded action button."""
         btn_font = ("Inter Bold", 9)
 
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill=fill,
@@ -203,14 +193,17 @@ class AdminUserFrame(tk.Frame):
         except Exception:
             hover_fill = "#333333"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill=hover_fill)
             self.canvas.tag_raise(txt, rect)
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill=fill)
             self.canvas.tag_raise(txt, rect)
@@ -223,12 +216,14 @@ class AdminUserFrame(tk.Frame):
         self.canvas.tag_bind(rect, "<Leave>", on_leave)
         self.canvas.tag_bind(txt, "<Leave>", on_leave)
 
+    #---Loads User List---
     def load_users(self):
         self.update_user_details(None)
         self.all_users = self.fetch_users()
         self.display_users_list(self.user_content_frame, self.all_users)
         self.search_entry.delete(0, tk.END)
 
+    #---Database: Fetches Users---
     def fetch_users(self):
         try:
             conn = get_db_connection()
@@ -243,6 +238,7 @@ class AdminUserFrame(tk.Frame):
             messagebox.showerror("Database Error", f"Error fetching users:\n{err}")
             return []
 
+    #---Database: Fetches Details---
     def fetch_user_details(self, user_id):
         details = {}
         conn = None
@@ -297,6 +293,7 @@ class AdminUserFrame(tk.Frame):
             if conn and conn.is_connected():
                 conn.close()
 
+    #---Disables Selected User---
     def disable_selected_user(self):
         if not self.selected_user_row_bg or not hasattr(self.selected_user_row_bg, "user_data"):
             messagebox.showwarning("No Selection", "Please select a user to disable.")
@@ -317,6 +314,7 @@ class AdminUserFrame(tk.Frame):
         except mysql.connector.Error as err:
             messagebox.showerror("Database Error", f"Error disabling user:\n{err}")
 
+    #---Handles Password Reset---
     def reset_password(self):
         if not self.selected_user_row_bg or not hasattr(self.selected_user_row_bg, "user_data"):
             messagebox.showwarning("No Selection", "Select user to reset password.")
@@ -362,10 +360,11 @@ class AdminUserFrame(tk.Frame):
         req_frame.pack(fill="x", padx=20, pady=5)
         tk.Label(req_frame, text="Password must include:", font=("Inter", 9, "bold"), bg="#FFFFFF",
                  justify="left").pack(anchor="w")
-        req_details = "• 8+ characters\n• Uppercase letter\n• Lowercase letter\n• Number\n• Special character (!@#$%^&*...)"
+        req_details = "• 8+ characters\n• Uppercase letter\n• Lowercase letter\n• Number"
         tk.Label(req_frame, text=req_details, font=("Inter", 8), bg="#FFFFFF", justify="left", fg="#666666").pack(
             anchor="w")
 
+        #---Generates Random Password---
         def generate_random_password():
             chars = string.ascii_letters + string.digits + string.punctuation
             pwd = (
@@ -386,6 +385,7 @@ class AdminUserFrame(tk.Frame):
             confirm_password_entry.delete(0, tk.END)
             confirm_password_entry.insert(0, final_pwd)
 
+        #---Validates and Resets---
         def validate_and_reset():
             new_password = new_password_entry.get()
             confirm_password = confirm_password_entry.get()
@@ -408,9 +408,6 @@ class AdminUserFrame(tk.Frame):
             if not re.search(r"\d", new_password):
                 messagebox.showerror("Error", "Needs digit.", parent=reset_window)
                 return
-            if not re.search(r"[!@#$%^&*(),.?\":{}|<>_+=~`\[\]\\';/-]", new_password):
-                messagebox.showerror("Error", "Needs special char.", parent=reset_window)
-                return
             if re.search(r"\s", new_password):
                 messagebox.showerror("Error", "No spaces allowed.", parent=reset_window)
                 return
@@ -431,12 +428,11 @@ class AdminUserFrame(tk.Frame):
         button_frame = tk.Frame(reset_window, bg="#FFFFFF")
         button_frame.pack(fill="x", padx=20, pady=(10, 5))
 
-        # --- "Generate" BUTTON ---
         gen_btn = tk.Button(
             button_frame,
             text="Generate",
             command=generate_random_password,
-            bg="#007BFF",  # Blue
+            bg="#007BFF",
             fg="#FFFFFF",
             font=("Inter Bold", 10),
             padx=10, pady=2, relief="raised", bd=1,
@@ -445,7 +441,6 @@ class AdminUserFrame(tk.Frame):
         )
         gen_btn.pack(side="left", padx=5)
 
-        # --- "Reset" AND "Cancel" BUTTONS ---
         reset_btn = tk.Button(
             button_frame,
             text="Reset Password",
@@ -474,6 +469,7 @@ class AdminUserFrame(tk.Frame):
 
         new_password_entry.focus_set()
 
+    #---Activates Selected User---
     def activate_selected_user(self):
         if not self.selected_user_row_bg or not hasattr(self.selected_user_row_bg, "user_data"):
             messagebox.showwarning("No Selection", "Please select a user to activate.")
@@ -494,6 +490,7 @@ class AdminUserFrame(tk.Frame):
         except mysql.connector.Error as err:
             messagebox.showerror("Database Error", f"Error activating user:\n{err}")
 
+    #---Database: Fetches Activity---
     def fetch_recent_activity(self, user_id):
         try:
             conn = get_db_connection()
@@ -512,6 +509,7 @@ class AdminUserFrame(tk.Frame):
                 self.create_activity_logs_table()
             return []
 
+    #---Database: Creates Logs Table---
     def create_activity_logs_table(self):
         try:
             conn = get_db_connection()
@@ -533,13 +531,13 @@ class AdminUserFrame(tk.Frame):
             print(f"Failed to create 'activity_logs': {err}")
             return False
 
+    #---Updates Details Panel---
     def update_user_details(self, details):
-        # Reset photo area to default placeholder
-        self.canvas.delete("user_profile_pic")  # Delete old photo
-        self.current_user_photo = None  # Clear reference
-        if hasattr(self, 'pic_area_rect'):  # Ensure rects exist
-            self.canvas.itemconfigure(self.pic_area_rect, state="normal")  # Show placeholder rect
-            self.canvas.itemconfigure(self.pic_area_text, state="normal")  # Show placeholder text
+        self.canvas.delete("user_profile_pic")
+        self.current_user_photo = None
+        if hasattr(self, 'pic_area_rect'):
+            self.canvas.itemconfigure(self.pic_area_rect, state="normal")
+            self.canvas.itemconfigure(self.pic_area_text, state="normal")
 
         self.canvas.delete("user_detail")
 
@@ -613,35 +611,26 @@ class AdminUserFrame(tk.Frame):
             self.canvas.create_text(286, y_position, anchor="nw", text="No recent activity.", fill="#999999",
                                     font=("Inter Italic", 10 * -1), tags="user_detail")
 
-        # --- 3. REPLACED THIS ENTIRE BLOCK ---
-        # --- Load Profile Picture (MODIFIED TO READ BLOB) ---
-        image_data = details.get('profile_picture')  # Get the BLOB data
+        image_data = details.get('profile_picture')
 
-        if image_data and isinstance(image_data, bytes):  # Check if it's bytes
+        if image_data and isinstance(image_data, bytes):
             try:
-                # Use io.BytesIO to treat the byte data as a file
                 image_stream = io.BytesIO(image_data)
 
-                # Define box size
                 box_w = self.PIC_BOX[2] - self.PIC_BOX[0]
                 box_h = self.PIC_BOX[3] - self.PIC_BOX[1]
 
-                # Open the in-memory file
                 image = Image.open(image_stream)
                 image.thumbnail((box_w, box_h), Image.Resampling.LANCZOS)
 
-                # Must store on self to prevent garbage collection!
                 self.current_user_photo = ImageTk.PhotoImage(image)
 
-                # Calculate center for placing the image
                 center_x = (self.PIC_BOX[0] + self.PIC_BOX[2]) / 2
                 center_y = (self.PIC_BOX[1] + self.PIC_BOX[3]) / 2
 
-                # Hide placeholder
                 self.canvas.itemconfigure(self.pic_area_rect, state="hidden")
                 self.canvas.itemconfigure(self.pic_area_text, state="hidden")
 
-                # Create the image on the canvas
                 self.canvas.create_image(
                     center_x, center_y,
                     image=self.current_user_photo,
@@ -649,31 +638,32 @@ class AdminUserFrame(tk.Frame):
                 )
 
             except Exception as e:
-                # This might happen if the BLOB data is corrupt or not an image
                 print(f"Error loading profile picture from BLOB data: {e}")
-                # If error, placeholder will just remain visible
-        # --- End Profile Picture ---
 
         self.canvas.tag_raise("user_detail")
 
+    #---Displays Users in List---
     def display_users_list(self, frame, users_to_display):
         for widget in frame.winfo_children():
             widget.destroy()
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=3)
 
+        #---Handles Row Hover---
         def on_row_enter(event, bg_widget):
             if bg_widget != self.selected_user_row_bg:
                 bg_widget.config(bg="#E8F0FE")
                 [child.config(bg="#E8F0FE") for child in bg_widget.winfo_children() if isinstance(child, tk.Label)]
             self.config(cursor="hand2")
 
+        #---Handles Row Leave---
         def on_row_leave(event, bg_widget):
             if bg_widget != self.selected_user_row_bg:
                 bg_widget.config(bg="white")
                 [child.config(bg="white") for child in bg_widget.winfo_children() if isinstance(child, tk.Label)]
             self.config(cursor="")
 
+        #---Handles Row Click---
         def on_row_click(event, user_data, bg_widget):
             if self.selected_user_row_bg and self.selected_user_row_bg.winfo_exists():
                 self.selected_user_row_bg.config(bg="white")
@@ -710,6 +700,7 @@ class AdminUserFrame(tk.Frame):
                 widget.bind("<Button-1>", lambda e, u=user, bg=row_bg_frame: on_row_click(e, u, bg))
             row_index += 1
 
+    #---Handles User Search---
     def on_user_search(self, event):
         search_term = self.search_entry.get().lower().strip()
         if not self.all_users:
@@ -723,9 +714,11 @@ class AdminUserFrame(tk.Frame):
         self.display_users_list(self.user_content_frame, filtered_users)
         self.user_list_canvas.after(50, lambda: self.on_frame_configure(self.user_list_canvas))
 
+    #---Updates Scrollable Area---
     def on_frame_configure(self, canvas):
         canvas.configure(scrollregion=canvas.bbox("all"))
 
+    #---Handles Mouse Wheel---
     def _on_mousewheel(self, event, canvas):
         scroll_info = canvas.yview()
         if scroll_info[0] == 0.0 and scroll_info[1] == 1.0:
@@ -737,30 +730,36 @@ class AdminUserFrame(tk.Frame):
             if scroll_info[1] < 1.0:
                 canvas.yview_scroll(1, "units")
 
+    #---Binds Mouse Wheel---
     def _bind_mousewheel(self, event, canvas):
         self.bind_all("<MouseWheel>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-4>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-5>", lambda ev: self._on_mousewheel(ev, canvas))
 
+    #---Unbinds Mouse Wheel---
     def _unbind_mousewheel(self, event):
         self.unbind_all("<MouseWheel>")
         self.unbind_all("<Button-4>")
         self.unbind_all("<Button-5>")
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command:
                 command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -771,21 +770,27 @@ class AdminUserFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
+    #---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
+    #---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
+    #---Navigation: Open Report Page---
     def open_admin_report(self):
         self.controller.show_admin_report()
 
+    #---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
+    #---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?"):
             self.controller.show_login_frame()

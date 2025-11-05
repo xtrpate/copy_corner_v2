@@ -1,27 +1,27 @@
+from pathlib import Path
 import tkinter as tk
 from tkinter import Tk, Canvas, Button, PhotoImage, messagebox, Label, Radiobutton, StringVar, Entry, Frame, filedialog
-from pathlib import Path
 import sys
 import mysql.connector
-import os # For path operations
-import shutil # For copying screenshot
-from datetime import datetime # For unique filenames
-from decimal import Decimal, InvalidOperation # Import InvalidOperation
+import os
+import shutil
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from utils import get_db_connection, round_rectangle
 
-# --- Asset Path (if needed for icons, etc.) ---
-OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / "assets" / "frame0" # Adjust if needed
 
+OUTPUT_PATH = Path(__file__).parent
+ASSETS_PATH = OUTPUT_PATH / "assets" / "frame0"
+
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
         print(f"Warning: Asset (pay.py) not found at {asset_file}")
     return asset_file
 
-# --- Fetch Job Details (Keep as is) ---
+#---Database: Fetches Job Details---
 def fetch_job_details(job_id):
-    """Fetches details (excluding amount) for a specific print job."""
     details = None
     conn = None
     cursor = None
@@ -47,7 +47,6 @@ def fetch_job_details(job_id):
             messagebox.showerror("Error", f"Job ID {job_id} not found.")
             return None
 
-        # Provide defaults for fields if missing
         details['file_name'] = details.get('file_name', 'N/A')
         details['color_option'] = details.get('color_option', 'N/A')
         details['pages'] = details.get('pages', 'N/A')
@@ -67,12 +66,8 @@ def fetch_job_details(job_id):
             conn.close()
     return details
 
-# --- **** MODIFIED: Record Payment and Update Status **** ---
+#---Database: Records Payment---
 def record_payment_and_update_status(job_id, payment_amount, payment_method, gcash_name=None, gcash_number=None, screenshot_path=None):
-    """
-    Inserts payment details into the 'payments' table AND sets job status to 'Paid'.
-    Uses a transaction to ensure both operations succeed or fail together.
-    """
     conn = None
     cursor = None
     try:
@@ -81,10 +76,9 @@ def record_payment_and_update_status(job_id, payment_amount, payment_method, gca
             messagebox.showerror("Database Error", "Could not connect to record payment.")
             return False
 
-        conn.start_transaction() # Start transaction
+        conn.start_transaction()
         cursor = conn.cursor()
 
-        # 1. Insert into payments table
         insert_query = """
             INSERT INTO payments
             (job_id, payment_amount, payment_method, gcash_name, gcash_number, gcash_screenshot_path, payment_timestamp)
@@ -92,22 +86,18 @@ def record_payment_and_update_status(job_id, payment_amount, payment_method, gca
         """
         payment_data = (
             job_id,
-            payment_amount, # Amount comes from args now
+            payment_amount,
             payment_method,
             gcash_name if payment_method == "Gcash" else None,
             gcash_number if payment_method == "Gcash" else None,
             screenshot_path if payment_method == "Gcash" else None
         )
         cursor.execute(insert_query, payment_data)
-        payment_id = cursor.lastrowid # Get the ID if needed later
+        payment_id = cursor.lastrowid
         print(f"Payment record {payment_id} inserted for job {job_id}.")
 
-        # 2. Update print_jobs status to 'Paid'
-        # Optional: Also update payment_method in print_jobs if you still want it there for quick viewing
-        # Set the new status based on the payment method
         new_status = "Cash" if payment_method == "Cash" else "Paid"
 
-        # Update the query to use the new_status variable
         update_query = """
             UPDATE print_jobs
             SET status = %s, 
@@ -117,7 +107,6 @@ def record_payment_and_update_status(job_id, payment_amount, payment_method, gca
         cursor.execute(update_query, (new_status, payment_method, job_id))
         affected_rows = cursor.rowcount
 
-        # Commit transaction if both operations seem successful
         conn.commit()
         print(f"Job {job_id} status updated to Paid (Affected rows: {affected_rows}). Transaction committed.")
 
@@ -126,17 +115,15 @@ def record_payment_and_update_status(job_id, payment_amount, payment_method, gca
             messagebox.showinfo("Payment Successfully", f"Payment successfully.")
             return True
         else:
-            # This case means the payment was inserted, but the job status wasn't 'Approved'
-            # The transaction is already committed. User should know status wasn't updated.
             messagebox.showwarning("Payment Recorded (Status Unchanged)",
                                    f"Payment recorded for Job #{job_id}, but its status was not 'Approved' and remains unchanged.")
-            return True # Return True because payment was recorded
+            return True
 
     except mysql.connector.Error as err:
         messagebox.showerror("Database Error", f"Error recording payment:\n{err}")
         if conn:
             print("Rolling back transaction due to error.")
-            conn.rollback() # Rollback on error
+            conn.rollback()
         return False
     except Exception as e:
         messagebox.showerror("Error", f"An unexpected error occurred:\n{e}")
@@ -149,17 +136,14 @@ def record_payment_and_update_status(job_id, payment_amount, payment_method, gca
             cursor.close()
         if conn and conn.is_connected():
             conn.close()
-# --- **** END MODIFICATION **** ---
 
 
-# --- Main Payment Window (Modified __init__ and confirm_payment) ---
 class PaymentWindow(Tk):
+    #---Initializes Payment UI---
     def __init__(self, job_id, amount_from_args):
         super().__init__()
         self.job_id = job_id
-        # Store the passed amount (this is the amount to be paid)
-        self.payment_amount = amount_from_args # Renamed for clarity
-        # Fetch other details for display
+        self.payment_amount = amount_from_args
         self.job_details = fetch_job_details(job_id)
         self.selected_screenshot_path = None
 
@@ -185,17 +169,13 @@ class PaymentWindow(Tk):
         )
         self.canvas.place(x=0, y=0)
 
-        # --- UI Elements (Keep as is) ---
-        # Header
         header_height = 74
         self.canvas.create_rectangle(0, 0, window_width, header_height, fill="#000000", outline="")
         self.canvas.create_text(20, header_height / 2, anchor="w", text="Payment Method:",
                                 fill="#FFFFFF", font=("Inter Bold", 24))
-        # Content Area setup
         content_y_start = header_height + 20
         label_x = 30
         value_x = 180
-        # Job Details Labels
         row_y = content_y_start
         details_font = ("Inter", 11)
         details_bold_font = ("Inter Bold", 11)
@@ -214,18 +194,15 @@ class PaymentWindow(Tk):
         Label(self, text="Copies:", font=details_bold_font, bg="#FFFFFF").place(x=label_x, y=row_y)
         Label(self, text=str(self.job_details['copies']), font=details_font, bg="#FFFFFF", anchor="w").place(x=value_x, y=row_y)
         row_y += 35
-        # Total Amount Display
         amount_text = f"₱{self.payment_amount:.2f}"
         Label(self, text="Total Amount:", font=("Inter Bold", 16), bg="#FFFFFF").place(x=label_x, y=row_y)
         Label(self, text=amount_text, font=("Inter Bold", 20, "bold"), bg="#FFFFFF", fg="#000000").place(x=value_x, y=row_y - 3)
         row_y += 50
-        # Payment Method Selection
         Label(self, text="Select Method:", font=("Inter Bold", 14), bg="#FFFFFF").place(x=label_x, y=row_y)
         self.payment_method_var = StringVar(value="Cash")
         Radiobutton(self, text="Cash", variable=self.payment_method_var, value="Cash", font=("Inter", 12), bg="#FFFFFF", anchor="w", command=self._update_payment_fields).place(x=label_x + 20, y=row_y + 30)
         Radiobutton(self, text="GCash", variable=self.payment_method_var, value="Gcash", font=("Inter", 12), bg="#FFFFFF", anchor="w", command=self._update_payment_fields).place(x=label_x + 120, y=row_y + 30)
         row_y += 65
-        # GCash Fields Frame
         self.gcash_frame = Frame(self, bg="#FFFFFF")
         Label(self.gcash_frame, text="GCash Name:", font=details_font, bg="#FFFFFF").grid(row=0, column=0, sticky="w", pady=2)
         self.gcash_name_entry = Entry(self.gcash_frame, font=details_font, bd=1, relief="solid", width=30)
@@ -238,16 +215,15 @@ class PaymentWindow(Tk):
         self.screenshot_button.grid(row=2, column=1, sticky="w", padx=5, pady=2)
         self.screenshot_label = Label(self.gcash_frame, text="No file selected.", font=("Inter Italic", 9), bg="#FFFFFF", fg="grey")
         self.screenshot_label.grid(row=2, column=2, sticky="w", padx=5, pady=2)
-        # Buttons
         button_y = window_height - 60
         self.confirm_button = Button(self, text="Confirm Payment", font=("Inter Bold", 12), command=self.confirm_payment, relief="raised", bd=1, bg="#000000", fg="#FFFFFF", activebackground="#333333", activeforeground="#FFFFFF", cursor="hand2")
         self.confirm_button.place(x=window_width - 180, y=button_y, width=150, height=35)
         self.cancel_button = Button(self, text="Cancel", font=("Inter Bold", 12), command=self.destroy, relief="raised", bd=1, bg="#000000", fg="#FFFFFF", activebackground="#333333", activeforeground="#FFFFFF", cursor="hand2")
         self.cancel_button.place(x=label_x, y=button_y, width=100, height=35)
 
-        self._update_payment_fields() # Initialize field visibility
+        self._update_payment_fields()
 
-    # --- _update_payment_fields (Keep as is) ---
+    #---Toggles GCash Fields---
     def _update_payment_fields(self):
         if self.payment_method_var.get() == "Gcash":
             self.gcash_frame.place(relx=0.05, rely=0.68, relwidth=0.9)
@@ -256,7 +232,7 @@ class PaymentWindow(Tk):
             self.gcash_frame.place_forget()
             self.confirm_button.config(state=tk.NORMAL)
 
-    # --- _browse_screenshot (Keep as is) ---
+    #---Handles Browse Button---
     def _browse_screenshot(self):
         filepath = filedialog.askopenfilename(
             title="Select Screenshot",
@@ -271,12 +247,12 @@ class PaymentWindow(Tk):
             self.selected_screenshot_path = None
             self.screenshot_label.config(text="No file selected.", fg="grey", font=("Inter Italic", 9))
 
-    # --- **** MODIFIED: confirm_payment **** ---
+    #---Handles Confirm Button---
     def confirm_payment(self):
         selected_method = self.payment_method_var.get()
         gcash_name = None
         gcash_number = None
-        final_screenshot_db_path = None # Path to store in DB (could be relative or absolute)
+        final_screenshot_db_path = None
 
         if not selected_method:
              messagebox.showwarning("Selection Missing", "Please select a payment method.")
@@ -292,9 +268,8 @@ class PaymentWindow(Tk):
                 messagebox.showwarning("Screenshot Missing", "Please select the payment screenshot file.")
                 return
 
-            # --- Save Screenshot ---
             try:
-                screenshots_dir = Path("./gcash_screenshots").resolve() # Use absolute path
+                screenshots_dir = Path("./gcash_screenshots").resolve()
                 screenshots_dir.mkdir(parents=True, exist_ok=True)
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -304,8 +279,6 @@ class PaymentWindow(Tk):
 
                 shutil.copy2(self.selected_screenshot_path, destination_path)
 
-                # Store the absolute path in the database for simplicity here
-                # Or you could store a path relative to the app's root
                 final_screenshot_db_path = str(destination_path)
                 print(f"Screenshot copied to: {final_screenshot_db_path}")
 
@@ -315,7 +288,6 @@ class PaymentWindow(Tk):
             except Exception as e:
                 messagebox.showerror("File Error", f"Could not save screenshot.\nError: {e}")
                 return
-            # --- End Save Screenshot ---
 
         confirm_msg = f"Record payment of ₱{self.payment_amount:.2f} for Job #{self.job_id} using {selected_method}?"
         if selected_method == "Gcash":
@@ -324,20 +296,17 @@ class PaymentWindow(Tk):
         confirm = messagebox.askyesno("Confirm Payment", confirm_msg)
 
         if confirm:
-            # Call the updated function, passing the payment amount
             if record_payment_and_update_status(
                 self.job_id,
-                self.payment_amount, # Pass the amount
+                self.payment_amount,
                 selected_method,
                 gcash_name,
                 gcash_number,
-                final_screenshot_db_path # Pass the saved path
+                final_screenshot_db_path
             ):
-                self.destroy() # Close window on success
-    # --- **** END MODIFICATION **** ---
+                self.destroy()
 
 
-# --- Script Entry Point (Keep as is) ---
 if __name__ == "__main__":
     job_id_to_pay = None
     amount_from_args = Decimal('0.00')

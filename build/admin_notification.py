@@ -5,11 +5,12 @@ import mysql.connector
 from datetime import datetime
 from utils import get_db_connection, round_rectangle
 
-# --- Asset Path Setup ---
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame5"
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -18,6 +19,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminNotificationFrame(tk.Frame):
+    #---Initializes Notification UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -40,7 +42,6 @@ class AdminNotificationFrame(tk.Frame):
         )
         self.canvas.place(x=0, y=0)
 
-        # --- Backgrounds ---
         self.canvas.create_rectangle(19.0, 15.0, window_width - 19, window_height - 15, fill="#FFF6F6",
                                      outline="#000000")
         self.canvas.create_rectangle(40.0, 33.0, window_width - 40, window_height - 33, fill="#FFFFFF",
@@ -53,7 +54,6 @@ class AdminNotificationFrame(tk.Frame):
         except tk.TclError as e:
             print(f"ERROR loading logo in admin_notification: {e}")
 
-        # --- Sidebar Content ---
         self.canvas.create_text(151, 140, anchor="center", text="ADMIN", fill="#000000", font=("Inter Bold", 15))
         sidebar_y_start = 162
         sidebar_y_offset = 56
@@ -67,7 +67,6 @@ class AdminNotificationFrame(tk.Frame):
                                         self.open_admin_inventory)
         self.create_rounded_menu_button(89, 485, 111, 38, "Logout", self.logout)
 
-        # --- Main Content Area ---
         self.canvas.create_text(281.0, 48.0, anchor="nw", text="Notifications", fill="#000000", font=("Inter Bold", 40))
         self.canvas.create_rectangle(260.0, 32.0, 261.0, window_height - 33, fill="#000000", outline="")
         self.canvas.create_rectangle(281.0, 100.0, 655.0, 517.0, fill="#FFFFFF", outline="#000000")
@@ -111,13 +110,11 @@ class AdminNotificationFrame(tk.Frame):
         message_scrollbar.pack(side="right", fill="y")
         self.message_text.pack(side="left", fill="both", expand=True)
 
-        # --- Buttons (REMOVED TTK, REPLACED WITH create_rounded_button) ---
         self.create_rounded_button(380, 473, 90, 35, "Clear", self.clear_form,
                                    fill="#F0F0F0", text_color="#000000")
         self.create_rounded_button(480, 473, 90, 35, "Send", self.send_notification,
                                    fill="#000000", text_color="#FFFFFF")
 
-        # --- Activity Feed ---
         feed_area_x = 665.0
         feed_area_y = 100.0
         feed_area_w = 190.0
@@ -150,11 +147,13 @@ class AdminNotificationFrame(tk.Frame):
 
         self.load_notifications_admin()
 
+    #---Loads Notification Data---
     def load_notifications_admin(self):
         self.fetch_users_for_autocomplete()
         self.toggle_user_entry()
         self.refresh_activity_feed()
 
+    #---Clears Input Form---
     def clear_form(self):
         self.send_to_var.set(None)
         self.user_entry.delete(0, tk.END)
@@ -162,6 +161,7 @@ class AdminNotificationFrame(tk.Frame):
         self.message_text.delete("1.0", tk.END)
         self.toggle_user_entry()
 
+    #---Fetches User List---
     def fetch_users_for_autocomplete(self):
         conn = get_db_connection()
         if not conn: return
@@ -178,6 +178,7 @@ class AdminNotificationFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Fetches Sent History---
     def fetch_notification_history(self):
         if not self.all_users:
             self.fetch_users_for_autocomplete()
@@ -213,6 +214,7 @@ class AdminNotificationFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Database: Creates Table---
     def create_notifications_table(self):
         conn = get_db_connection()
         if not conn: return False
@@ -243,6 +245,7 @@ class AdminNotificationFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Toggles User Input---
     def toggle_user_entry(self):
         if self.send_to_var.get() == "single":
             self.user_entry.config(state=tk.NORMAL, bg="white")
@@ -255,6 +258,7 @@ class AdminNotificationFrame(tk.Frame):
             self.hide_suggestions()
             self.selected_user_id = None
 
+    #---Updates User Autocomplete---
     def update_user_suggestions(self, event=None):
         search_term = self.user_entry.get().lower()
         self.user_listbox.delete(0, tk.END)
@@ -276,6 +280,7 @@ class AdminNotificationFrame(tk.Frame):
         else:
             self.hide_suggestions()
 
+    #---Handles User Selection---
     def select_user_from_list(self, event=None):
         selection_indices = self.user_listbox.curselection()
         if not selection_indices: return
@@ -295,11 +300,13 @@ class AdminNotificationFrame(tk.Frame):
             self.selected_user_id = None
             self.hide_suggestions()
 
+    #---Hides Autocomplete List---
     def hide_suggestions(self, event=None):
         focused_widget = self.focus_get()
         if focused_widget != self.user_listbox:
             self.after(150, self.user_listbox.place_forget)
 
+    #---Updates Activity Feed UI---
     def update_activity_feed(self):
         for widget in self.feed_inner_frame.winfo_children():
             widget.destroy()
@@ -314,6 +321,7 @@ class AdminNotificationFrame(tk.Frame):
         self.feed_canvas.configure(scrollregion=self.feed_canvas.bbox("all"))
         self.feed_canvas.yview_moveto(0)
 
+    #---Creates Feed Item UI---
     def create_feed_item(self, notification):
         item_frame = tk.Frame(self.feed_inner_frame, bg="#FFFFFF", relief="solid", bd=1)
         item_frame.pack(fill="x", padx=5, pady=(0, 3))
@@ -335,11 +343,13 @@ class AdminNotificationFrame(tk.Frame):
                                                                                                             padx=5,
                                                                                                             pady=(0, 3))
 
+        #---Feed Item Hover---
         def on_enter(event, frame=item_frame):
             frame.config(bg="#F0F8FF")
             for child in frame.winfo_children():
                 if isinstance(child, tk.Label): child.config(bg="#F0F8FF")
 
+        #---Feed Item Leave---
         def on_leave(event, frame=item_frame):
             frame.config(bg="#FFFFFF")
             for child in frame.winfo_children():
@@ -351,9 +361,11 @@ class AdminNotificationFrame(tk.Frame):
             child.bind("<Enter>", on_enter)
             child.bind("<Leave>", on_leave)
 
+    #---Refreshes Activity Feed---
     def refresh_activity_feed(self):
         self.update_activity_feed()
 
+    #---Handles Sending Notification---
     def send_notification(self):
         send_to = self.send_to_var.get()
         user_text = self.user_entry.get().strip()
@@ -413,6 +425,7 @@ class AdminNotificationFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Handles Mouse Wheel---
     def _on_mousewheel(self, event, canvas):
         scroll_info = canvas.yview()
         if scroll_info[0] == 0.0 and scroll_info[1] == 1.0:
@@ -422,44 +435,47 @@ class AdminNotificationFrame(tk.Frame):
         elif event.delta < 0 or event.num == 5:
             if scroll_info[1] < 1.0: canvas.yview_scroll(1, "units")
 
+    #---Binds Mouse Wheel---
     def _bind_mousewheel(self, event, canvas):
         self.bind_all("<MouseWheel>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-4>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-5>", lambda ev: self._on_mousewheel(ev, canvas))
 
+    #---Unbinds Mouse Wheel---
     def _unbind_mousewheel(self, event):
         self.unbind_all("<MouseWheel>")
         self.unbind_all("<Button-4>")
         self.unbind_all("<Button-5>")
 
-    # --- **** ADDED: create_rounded_button (copied from admin_inventory.py) **** ---
+    #---Creates Action Button---
     def create_rounded_button(self, x, y, w, h, text, command, fill, text_color):
-        """Creates a generic rounded action button."""
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill=fill, outline="")
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, font=("Inter Bold", 10), fill=text_color)
 
         try:
-            # Simple hover logic
             if fill == "#000000":
                 hover_fill = "#333333"
             elif fill == "#F0F0F0":
                 hover_fill = "#DEDEDE"
-            else: # Default darken
+            else:
                 r_hex, g_hex, b_hex = fill[1:3], fill[3:5], fill[5:7]
                 r, g, b = int(r_hex, 16), int(g_hex, 16), int(b_hex, 16)
                 hover_r, hover_g, hover_b = max(0, r - 30), max(0, g - 30), max(0, b - 30)
                 hover_fill = f'#{hover_r:02x}{hover_g:02x}{hover_b:02x}'
         except Exception:
-            hover_fill = "#333333" # Fallback
+            hover_fill = "#333333"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill=hover_fill)
             self.canvas.tag_raise(txt, rect)
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill=fill)
             self.canvas.tag_raise(txt, rect)
@@ -471,21 +487,24 @@ class AdminNotificationFrame(tk.Frame):
         self.canvas.tag_bind(txt, "<Enter>", on_hover)
         self.canvas.tag_bind(rect, "<Leave>", on_leave)
         self.canvas.tag_bind(txt, "<Leave>", on_leave)
-    # --- **** END ADDITION **** ---
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -496,21 +515,27 @@ class AdminNotificationFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
+    #---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
+    #---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
+    #---Navigation: Open Report Page---
     def open_admin_report(self):
         self.controller.show_admin_report()
 
+    #---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
+    #---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?"):
             self.controller.show_login_frame()

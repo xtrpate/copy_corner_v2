@@ -5,11 +5,12 @@ import mysql.connector
 from decimal import Decimal, InvalidOperation
 from utils import get_db_connection, round_rectangle
 
-# Asset Path
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame4"
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -17,7 +18,9 @@ def relative_to_assets(path: str) -> Path:
     return asset_file
 
 
+#---Creates Placeholder Entry---
 class PlaceholderEntry(Entry):
+    #---Initializes Placeholder---
     def __init__(self, master=None, placeholder="PLACEHOLDER", color="grey", *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.placeholder = placeholder
@@ -27,24 +30,29 @@ class PlaceholderEntry(Entry):
         self.bind("<FocusOut>", self.foc_out)
         self.put_placeholder()
 
+    #---Sets Placeholder Text---
     def put_placeholder(self):
         if not self.winfo_exists(): return
         self.delete(0, "end")
         self.insert(0, self.placeholder)
         self["fg"] = self.placeholder_color
 
+    #---Handles Focus In---
     def foc_in(self, *args):
         if not self.winfo_exists(): return
         if self["fg"] == self.placeholder_color:
             self.delete("0", "end")
             self["fg"] = self.default_fg_color
 
+    #---Handles Focus Out---
     def foc_out(self, *args):
         if not self.winfo_exists(): return
         if not self.get(): self.put_placeholder()
 
 
+#---Creates Inventory Frame---
 class AdminInventoryFrame(tk.Frame):
+    #---Initializes Inventory UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -56,14 +64,12 @@ class AdminInventoryFrame(tk.Frame):
         )
         self.canvas.place(x=0, y=0)
 
-        # --- Backgrounds ---
         self.canvas.create_rectangle(19.0, 27.0, 848.0, 531.0, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(28.0, 34.0, 231.0, 523.0, fill="#FFFFFF", outline="#000000")
         self.canvas.create_rectangle(235.0, 27.0, 240.0, 531.0, fill="#000000", outline="")
         self.canvas.create_rectangle(622.0, 206.0, 839.0, 375.0, fill="#F0F0F0", outline="#000000", width=1)
         self.canvas.create_rectangle(260.0, 174.0, 617.0, 470.0, fill="#FFFFFF", outline="#000000")
 
-        # --- Logo ---
         try:
             self.logo_image = PhotoImage(file=relative_to_assets("image_1.png"))
             self.canvas.create_image(131.0, 69.0, image=self.logo_image)
@@ -74,7 +80,6 @@ class AdminInventoryFrame(tk.Frame):
         self.canvas.create_text(258.0, 29.0, anchor="nw", text="Inventory", fill="#000000",
                                 font=("Inter Bold", 36 * -1))
 
-        # --- Sidebar Buttons ---
         sidebar_y_start = 153.0
         button_height = 41.0
         button_gap = 15.0
@@ -91,7 +96,6 @@ class AdminInventoryFrame(tk.Frame):
                                         "Reports", self.controller.show_admin_report)
         self.create_rounded_menu_button(82.0, 470.0, 91.0, 41.0, "Logout", self.controller.show_login_frame)
 
-        # --- Search Area ---
         self.search_entry = PlaceholderEntry(self, placeholder="Search Product", bd=0, bg="#FFFFFF",
                                              highlightthickness=1, relief="solid",
                                              highlightcolor="#000000", highlightbackground="#808080")
@@ -101,7 +105,6 @@ class AdminInventoryFrame(tk.Frame):
         self.create_rounded_button(472.0, 97.0, 71.0, 29.0, "Search", self.search_products, fill="#000000",
                                    text_color="#FFFFFF")
 
-        # --- Table Area ---
         self.canvas.create_text(270.0, 179.0, anchor="nw", text="Current Stock", fill="#000000",
                                 font=("Inter Bold", 16 * -1))
 
@@ -134,7 +137,6 @@ class AdminInventoryFrame(tk.Frame):
 
         self.tree.bind("<<TreeviewSelect>>", self.on_row_select)
 
-        # --- Manage Product Form ---
         self.canvas.create_text(639.0, 213.0, anchor="nw", text="Manage Product", fill="#000000",
                                 font=("Inter Bold", 16 * -1))
         self.canvas.create_text(631.0, 246.0, anchor="nw", text="Product Name:", fill="#000000",
@@ -152,31 +154,32 @@ class AdminInventoryFrame(tk.Frame):
         self.entry_price = Entry(self, bd=0, bg="#FFFFFF", highlightthickness=1, relief="solid", highlightbackground="#808080", highlightcolor="#000000")
         self.entry_price.place(x=721.0, y=297.0, width=108.0, height=21.0)
 
-        # --- Form Buttons (MODIFIED: Removed "New", shifted others left) ---
         self.create_rounded_button(655.0, 333.0, 60.0, 25.0, "Delete", self.delete_product, fill="#DC3545",
                                    text_color="#FFFFFF")
         self.create_rounded_button(720.0, 333.0, 69.0, 25.0, "Save", self.save_product, fill="#28A745",
                                    text_color="#FFFFFF")
-        # --- END MODIFICATION ---
 
         self.load_products()
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command):
-        """Creates a sidebar menu button."""
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1,
                                tags=f"btn_{text}_rect")
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 16 * -1), tags=f"btn_{text}_txt")
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#F0F0F0")
             self.canvas.tag_raise(txt, rect)
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.canvas.tag_raise(txt, rect)
@@ -188,8 +191,8 @@ class AdminInventoryFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
+    #---Creates Action Button---
     def create_rounded_button(self, x, y, w, h, text, command, fill, text_color):
-        """Creates a generic rounded action button."""
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill=fill, outline="")
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, font=("Inter Bold", 10), fill=text_color)
 
@@ -201,14 +204,17 @@ class AdminInventoryFrame(tk.Frame):
         except Exception:
             hover_fill = "#333333"
 
+        #---Button Click Event---
         def on_click(event):
             if command: command()
 
+        #---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill=hover_fill)
             self.canvas.tag_raise(txt, rect)
             self.config(cursor="hand2")
 
+        #---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill=fill)
             self.canvas.tag_raise(txt, rect)
@@ -221,6 +227,7 @@ class AdminInventoryFrame(tk.Frame):
         self.canvas.tag_bind(rect, "<Leave>", on_leave)
         self.canvas.tag_bind(txt, "<Leave>", on_leave)
 
+    #---Loads Products to Table---
     def load_products(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -246,6 +253,7 @@ class AdminInventoryFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Handles Table Row Selection---
     def on_row_select(self, event):
         try:
             selected_item = self.tree.focus()
@@ -263,6 +271,7 @@ class AdminInventoryFrame(tk.Frame):
             print("Error selecting row, values might be empty.")
             self.clear_form()
 
+    #---Clears Input Fields---
     def clear_form(self):
         self.entry_product_name.delete(0, 'end')
         self.entry_quantity.delete(0, 'end')
@@ -272,6 +281,7 @@ class AdminInventoryFrame(tk.Frame):
         if selected_item:
             self.tree.selection_remove(selected_item)
 
+    #---Saves or Updates Product---
     def save_product(self):
         product_name = self.entry_product_name.get().strip()
         quantity_str = self.entry_quantity.get().strip()
@@ -321,6 +331,7 @@ class AdminInventoryFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Deletes Selected Product---
     def delete_product(self):
         if not self.selected_product_id:
             messagebox.showwarning("No Selection", "Please select a product from the list to delete.", parent=self)
@@ -354,6 +365,7 @@ class AdminInventoryFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Searches Products---
     def search_products(self, event=None):
         search_term = self.search_entry.get().strip()
         if not search_term or search_term == "Search Product":
@@ -389,21 +401,27 @@ class AdminInventoryFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
+    #---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
+    #---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
+    #---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
+    #---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
+    #---Navigation: Open Report Page---
     def open_admin_report(self):
         self.controller.show_admin_report()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?", parent=self):
             self.controller.show_login_frame()

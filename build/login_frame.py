@@ -6,8 +6,8 @@ import bcrypt
 from utils import get_db_connection, round_rectangle
 
 
-# --- Placeholder Entry Class (Keep as is) ---
 class PlaceholderEntry(Entry):
+    #---Initializes Placeholder---
     def __init__(self, master=None, placeholder="PLACEHOLDER", color="grey", show_char="", *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.placeholder = placeholder
@@ -18,30 +18,30 @@ class PlaceholderEntry(Entry):
         self.bind("<FocusOut>", self.foc_out)
         self.put_placeholder()
 
+    #---Sets Placeholder Text---
     def put_placeholder(self):
-        # Prevent error if widget destroyed prematurely
         if not self.winfo_exists(): return
         self.delete(0, "end")
         self.insert(0, self.placeholder)
         self["fg"] = self.placeholder_color
         if self.show_char: self.config(show="")
 
+    #---Handles Focus In---
     def foc_in(self, *args):
-        # Prevent error if widget destroyed prematurely
         if not self.winfo_exists(): return
         if self["fg"] == self.placeholder_color:
             self.delete("0", "end")
             self["fg"] = self.default_fg_color
             if self.show_char: self.config(show=self.show_char)
 
+    #---Handles Focus Out---
     def foc_out(self, *args):
-        # Prevent error if widget destroyed prematurely
         if not self.winfo_exists(): return
         if not self.get(): self.put_placeholder()
 
 
-# --- RadioTile Class (Keep as is, though it's no longer used in this file) ---
 class RadioTile(tk.Canvas):
+    #---Initializes Radio Button---
     def __init__(self, master, text, variable, value, width=270, height=30, radius=12, **kwargs):
         super().__init__(master, width=width, height=height, bg="#F2F6F5", highlightthickness=0, **kwargs)
         self.variable = variable
@@ -56,11 +56,13 @@ class RadioTile(tk.Canvas):
         self.bind("<Enter>", lambda e: self.config(cursor="hand2"))
         self.bind("<Leave>", lambda e: self.config(cursor=""))
 
+    #---Draws Radio Button---
     def draw_rounded_rect(self, x1, y1, x2, y2, r, fill):
         points = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2,
                   x2 - r, y2, x1 + r, y2, x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
         return self.create_polygon(points, smooth=True, fill=fill, outline="black", width=1)
 
+    #---Updates Radio Button---
     def draw_tile(self):
         self.delete("all")
         if self.variable.get() == self.value:
@@ -71,6 +73,7 @@ class RadioTile(tk.Canvas):
         self.create_text(self.width / 2, self.height / 2,
                          text=self.text, fill=text_color, font=("Inter", 12, "bold"), tags="text")
 
+    #---Handles Radio Click---
     def select_tile(self, event=None):
         self.variable.set(self.value)
         if self.master and self.master.winfo_exists():
@@ -82,11 +85,11 @@ class RadioTile(tk.Canvas):
                         print(f"Warning: Could not redraw sibling tile {sibling}")
 
 
-# --- Asset Path ---
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame0"
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -94,13 +97,12 @@ def relative_to_assets(path: str) -> Path:
     return asset_file
 
 
-# --- MAIN LOGIN FRAME CLASS ---
 class LoginFrame(tk.Frame):
+    #---Initializes Login UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
 
-        # --- Load Assets ---
         try:
             self._eye_image = controller.eye_image
             self._eye_slash_image = controller.eye_slash_image
@@ -124,7 +126,6 @@ class LoginFrame(tk.Frame):
         canvas.place(x=0, y=0)
         self.canvas = canvas
 
-        # --- UI Elements (Kept background) ---
         canvas.create_rectangle(15.0, 14.0, 844.0, 518.0, fill="#FFFFFF", outline="#000000", width=1.5)
         canvas.create_text(84.0, 208.0, anchor="nw", text="Your Documents, Our Priority", fill="#000000",
                            font=("Inter", -20))
@@ -145,19 +146,7 @@ class LoginFrame(tk.Frame):
                            font=font_style1)
         canvas.create_text(553.0, 131.0, anchor="nw", text=text1, fill="#000000", font=font_style1)
 
-        # --- **** MODIFICATION: Removed RadioTile/Frame **** ---
-        # role_frame = tk.Frame(self, bg="#F2F6F5")
-        # role_frame.place(x=500, y=155)
-        # self.selected_role = tk.StringVar(value="User")
-        # admin_tile = RadioTile(role_frame, "Admin", self.selected_role, "Admin", width=153, height=32)
-        # admin_tile.grid(row=0, column=0, padx=(0,5))
-        # user_tile = RadioTile(role_frame, "User", self.selected_role, "User", width=153, height=32)
-        # user_tile.grid(row=0, column=1)
-        # --- **** END MODIFICATION **** ---
-
-        # --- **** MODIFICATION: Shifted fields up **** ---
-        # Original Y positions: 221 (entry), 195 (label), 293 (entry), 267 (label), 349 (forgot), 385 (btn), 406 (btn text)
-        y_shift = 40  # Amount to shift up
+        y_shift = 40
         self.entry_email, _ = self.create_rounded_entry(500, 241 - y_shift, placeholder="Email or Username")
         self.entry_password, self.eye_icon_id = self.create_rounded_entry(500, 313 - y_shift, placeholder="Password",
                                                                           show_char="*", with_eye=True)
@@ -175,7 +164,6 @@ class LoginFrame(tk.Frame):
         self.forgot_pw_label = canvas.create_text(671.0, 359.0 - y_shift, anchor="nw", text="Forgot Password?",
                                                   fill="#000000",
                                                   font=("Inter", 11, "bold"), state="hidden")
-        # --- **** END MODIFICATION **** ---
 
         canvas.create_text(506.0, 468.0, anchor="nw", text="Don’t have an account?", fill="#000000",
                            font=("Inter", -16))
@@ -187,7 +175,6 @@ class LoginFrame(tk.Frame):
         canvas.create_image(360.0, 464.0, image=self._image_image_4)
         canvas.create_image(249.0, 426.0, image=self._image_image_5)
 
-        # --- Bindings (Keep as is) ---
         canvas.tag_bind(btn_login, "<Button-1>", lambda e: self.login_user())
         canvas.tag_bind(btn_login_text, "<Button-1>", lambda e: self.login_user())
         for tag in (btn_login, btn_login_text):
@@ -201,23 +188,21 @@ class LoginFrame(tk.Frame):
         canvas.tag_bind(self.forgot_pw_label, "<Button-1>", lambda e: self.open_forgot())
         canvas.tag_bind(register_text, "<Button-1>", lambda e: self.open_register())
 
-    # --- open_register (Keep as is) ---
+    #---Navigation: Open Register---
     def open_register(self):
         self.clear_fields()
         self.controller.show_register_frame()
 
-    # --- open_forgot (Keep as is) ---
+    #---Navigation: Open Forgot---
     def open_forgot(self):
         self.clear_fields()
         self.controller.show_forgot_frame()
 
-    # --- **** MODIFIED: login_user **** ---
+    #---Handles Login Button---
     def login_user(self):
         username_or_email = self.entry_email.get()
         password = self.entry_password.get()
-        # role = self.selected_role.get() # --- REMOVED
 
-        # Handle placeholder text
         if username_or_email == self.entry_email.placeholder and self.entry_email[
             "fg"] == self.entry_email.placeholder_color:
             username_or_email = ""
@@ -230,7 +215,7 @@ class LoginFrame(tk.Frame):
             return
 
         password_bytes = password.encode('utf-8')
-        conn = None;
+        conn = None
         cursor = None
         try:
             conn = get_db_connection()
@@ -238,18 +223,14 @@ class LoginFrame(tk.Frame):
 
             cursor = conn.cursor(dictionary=True)
 
-            # --- 1. Check Admin Table FIRST ---
-            # (Assuming admin password is plain text, as in your original code)
             cursor.execute("SELECT * FROM admin_login WHERE admin_username = %s", (username_or_email,))
             admin = cursor.fetchone()
 
             if admin and admin['admin_password'] == password:
                 admin_name = admin.get('admin_username')
-                # messagebox.showinfo("Success", f"Welcome {admin_name} (Admin)!", parent=self) # Optional
                 self.controller.on_admin_login(admin_name)
-                return  # <<<--- Successful Admin Login
+                return
 
-            # --- 2. Check User Table (if not admin) ---
             cursor.execute("""
                 SELECT user_id, fullname, status, password
                 FROM users WHERE (username = %s OR email = %s)
@@ -264,17 +245,15 @@ class LoginFrame(tk.Frame):
                 elif user.get('status') == 'active':
                     user_id = user.get('user_id')
                     fullname = user.get('fullname')
-                    # messagebox.showinfo("Success", f"Welcome {fullname}!", parent=self) # Optional
                     self.controller.on_login_success(user_id, fullname)
-                    return  # <<<--- Successful User Login
+                    return
                 else:
                     messagebox.showerror("Error", "Your account status is invalid.", parent=self)
-                return  # <<<--- User found but status issue, still stop.
+                return
 
-            # --- 3. If both checks fail ---
             messagebox.showerror("Error", "Invalid username/email or password.", parent=self)
             if hasattr(self, 'forgot_pw_label'):
-                self.canvas.itemconfigure(self.forgot_pw_label, state="normal")  # Show forgot link
+                self.canvas.itemconfigure(self.forgot_pw_label, state="normal")
 
         except mysql.connector.Error as db_err:
             messagebox.showerror("Database Error", f"Database operation failed:\n{db_err}", parent=self)
@@ -284,26 +263,24 @@ class LoginFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
-    # --- **** END MODIFICATION **** ---
-
-    # --- Helper for Rounded Entry (Keep as is) ---
+    #---Creates Entry Widget---
     def create_rounded_entry(self, x_pos, y_pos, placeholder="", show_char="", with_eye=False):
-        round_rectangle(self.canvas, x_pos, y_pos + 7, 802, y_pos + 37, r=10, fill="#DDDDDD", outline="")  # Shadow
+        round_rectangle(self.canvas, x_pos, y_pos + 7, 802, y_pos + 37, r=10, fill="#DDDDDD", outline="")
         round_rectangle(self.canvas, x_pos, y_pos + 5, 800, y_pos + 35, r=10, fill="white", outline="#CCCCCC",
-                        width=1)  # Border
+                        width=1)
         entry = PlaceholderEntry(
             self, placeholder=placeholder, bd=0, bg="white", fg="#000000",
             show_char=show_char, highlightthickness=0, font=("Inter", 12)
         )
         icon_item_id = None
-        entry_width = 800 - x_pos - 10  # Default width
-        entry_x_offset = (800 - x_pos) / 2  # Default center offset
+        entry_width = 800 - x_pos - 10
+        entry_x_offset = (800 - x_pos) / 2
 
         if with_eye:
-            entry_width = 800 - x_pos - 35  # Make space for icon
-            entry_x_offset = (800 - x_pos - 30) / 2  # Adjust center for smaller width
+            entry_width = 800 - x_pos - 35
+            entry_x_offset = (800 - x_pos - 30) / 2
             icon_item_id = self.canvas.create_image(775, y_pos + 10, anchor="nw",
-                                                    image=self._eye_slash_image)  # Use stored image ref
+                                                    image=self._eye_slash_image)
             self.canvas.tag_bind(icon_item_id, "<Button-1>", lambda e: self.toggle_password(entry, icon_item_id))
             self.canvas.tag_bind(icon_item_id, "<Enter>", lambda e: self.config(cursor="hand2"))
             self.canvas.tag_bind(icon_item_id, "<Leave>", lambda e: self.config(cursor=""))
@@ -313,9 +290,8 @@ class LoginFrame(tk.Frame):
 
         return entry, icon_item_id
 
-    # --- Toggle Password (Keep as is) ---
+    #---Toggles Password Show/Hide---
     def toggle_password(self, entry, icon_id):
-        # Prevent toggling placeholder
         is_placeholder = (hasattr(entry, 'placeholder') and
                           entry.get() == entry.placeholder and
                           entry["fg"] == entry.placeholder_color)
@@ -331,21 +307,19 @@ class LoginFrame(tk.Frame):
         except tk.TclError:
             print("Warning: Eye icon could not be updated.")
 
-    # --- Clear Fields Method (Keep as is) ---
+    #---Clears Input Fields---
     def clear_fields(self):
-        """Resets the email and password fields to their placeholder state."""
         if hasattr(self, 'entry_email') and self.entry_email.winfo_exists():
             self.entry_email.put_placeholder()
         if hasattr(self, 'entry_password') and self.entry_password.winfo_exists():
             self.entry_password.put_placeholder()
-            self.entry_password.config(show='*')  # Ensure password hidden
+            self.entry_password.config(show='*')
             if hasattr(self, 'eye_icon_id') and self.eye_icon_id:
                 try:
-                    self.canvas.itemconfig(self.eye_icon_id, image=self._eye_slash_image)  # Reset eye icon
+                    self.canvas.itemconfig(self.eye_icon_id, image=self._eye_slash_image)
                 except tk.TclError:
                     print("Warning: Could not reset eye icon image.")
 
-        # Hide the 'Forgot Password?' link again
         if hasattr(self, 'forgot_pw_label'):
             try:
                 if self.canvas.find_withtag(self.forgot_pw_label):

@@ -4,17 +4,18 @@ import tkinter as tk
 import mysql.connector
 import bcrypt
 import re
-from utils import get_db_connection, round_rectangle
-
+import random
+from utils import get_db_connection, round_rectangle, send_verification_email, update_user_data_in_db
 from tkinter import filedialog
 from PIL import Image, ImageTk, ImageDraw
 import io
 
-# --- Asset Path --- (No changes needed)
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame0"
 
 
+#---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -22,19 +23,20 @@ def relative_to_assets(path: str) -> Path:
     return asset_file
 
 
-# --- Rounded Rectangle --- (No changes needed)
+#---Creates Rounded Rectangle---
 def create_rounded_rect(canvas, x1, y1, x2, y2, radius=15, **kwargs):
     points = [x1 + radius, y1, x2 - radius, y1, x2, y1, x2, y1 + radius, x2, y2 - radius,
               x2, y2, x2 - radius, y2, x1 + radius, y2, x1, y2, x1, y2 - radius, x1, y1 + radius, x1, y1]
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
 
-# --- Rounded Button Helper --- (No changes needed)
+#---Creates Canvas Button---
 def create_rounded_button(canvas, x, y, w, h, text, command=None, fill="#000000", text_color="#FFFFFF"):
     rect = create_rounded_rect(canvas, x, y, x + w, y + h, radius=15, fill=fill, outline="")
     txt = canvas.create_text(x + w / 2 + 3, y + h / 2, text=text, fill=text_color, font=("Inter Bold", 14),
                              anchor="center")
 
+    #---Button Click Event---
     def on_click(event):
         if command: command()
 
@@ -45,10 +47,8 @@ def create_rounded_button(canvas, x, y, w, h, text, command=None, fill="#000000"
     return rect, txt
 
 
-# --- Helper function to crop and mask image to a circle --- (No changes needed)
+#---Crops Image to Circle---
 def crop_and_mask_circle(image, size):
-    """Crops the image to a square, resizes it, and applies a circular mask."""
-    # Ensure square aspect ratio for circular crop
     width, height = image.size
     if width > height:
         left = (width - height) / 2
@@ -64,19 +64,17 @@ def crop_and_mask_circle(image, size):
     image = image.crop((left, top, right, bottom))
     image = image.resize((size, size), Image.Resampling.LANCZOS)
 
-    # Create a circular mask
     mask = Image.new('L', (size, size), 0)
     draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size, size), fill=255)  # Draw a white ellipse on black background
+    draw.ellipse((0, 0, size, size), fill=255)
 
-    # Apply mask to image
-    rounded_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))  # Create transparent image
-    rounded_img.paste(image, (0, 0), mask)  # Paste with mask
+    rounded_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    rounded_img.paste(image, (0, 0), mask)
     return rounded_img
 
 
-# --- MAIN USER FRAME CLASS ---
 class UserFrame(tk.Frame):
+    #---Initializes Profile UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -132,7 +130,6 @@ class UserFrame(tk.Frame):
         self.make_icon_clickable(lbl_sheet, self.open_prices_py)
         self.make_icon_clickable(lbl_help, self.open_help_py)
 
-        # --- Profile Picture area --- (No changes needed)
         pfp_diameter = 150
         pfp_center_x = 710
         pfp_center_y = 132
@@ -149,7 +146,6 @@ class UserFrame(tk.Frame):
         self.pfp_image_id = self.canvas.create_image(pfp_center_x, pfp_center_y, anchor="center")
         self.pfp_display_size = pfp_diameter - 4
 
-        # --- Form Fields --- (No changes needed)
         self.field_positions = {
             "fullname": (271, 146, 500, 174), "username": (271, 212, 500, 240),
             "password": (271, 278, 500, 306), "email": (269, 341, 500, 369),
@@ -183,7 +179,6 @@ class UserFrame(tk.Frame):
             entry.config(state="readonly", readonlybackground="#FFFAFA", fg="#555555")
             self.entries[key] = entry
 
-        # --- Buttons --- (No changes needed)
         self.edit_btn_rect = create_rounded_rect(canvas, 271, 468, 351, 496, radius=15, fill="#000000", outline="")
         self.edit_btn_text = canvas.create_text(311 + 3, 479 + 3, anchor="center", text="Edit", fill="#FFFFFF",
                                                 font=("Inter Bold", 14))
@@ -209,7 +204,7 @@ class UserFrame(tk.Frame):
 
         self.load_user_data()
 
-    # --- load_user_data --- (No changes needed)
+    #---Loads User Data---
     def load_user_data(self):
         if not self.controller.user_id:
             messagebox.showerror("Error", "No user logged in.")
@@ -234,12 +229,12 @@ class UserFrame(tk.Frame):
             else:
                 self.canvas.itemconfigure(self.pfp_image_id, image="")
                 self.canvas.itemconfigure(self.pfp_text, text="Picture", state="normal")
-                self.pfp_image = None # This is key: set to None if no picture
+                self.pfp_image = None
         else:
             messagebox.showerror("Error", "Could not load user profile data.")
             self.controller.show_login_frame()
 
-    # --- get_user_data --- (No changes needed)
+    #---Database: Fetches User Data---
     def get_user_data(self, user_id):
         conn = None
         cursor = None
@@ -260,84 +255,34 @@ class UserFrame(tk.Frame):
             if cursor: cursor.close()
             if conn and conn.is_connected(): conn.close()
 
-    # --- update_user_data --- (No changes needed)
-    def update_user_data(self, user_id, data_to_update):
-        conn = None
-        cursor = None
-        try:
-            conn = get_db_connection()
-            if not conn: return False
-            cursor = conn.cursor()
-            set_clauses = []
-            params = []
-            if "fullname" in data_to_update: set_clauses.append("fullname = %s"); params.append(
-                data_to_update["fullname"])
-            if "username" in data_to_update: set_clauses.append("username = %s"); params.append(
-                data_to_update["username"])
-            if "email" in data_to_update: set_clauses.append("email = %s"); params.append(data_to_update["email"])
-            if "contact" in data_to_update: set_clauses.append("contact = %s"); params.append(data_to_update["contact"])
-
-            if "profile_picture" in data_to_update:
-                set_clauses.append("profile_picture = %s")
-                params.append(data_to_update["profile_picture"])
-
-            if "password" in data_to_update:
-                hashed_password = bcrypt.hashpw(data_to_update["password"].encode('utf-8'), bcrypt.gensalt())
-                set_clauses.append("password = %s");
-                params.append(hashed_password)
-
-            if not set_clauses: messagebox.showinfo("No Changes", "No fields were modified."); return True
-
-            sql = f"UPDATE users SET {', '.join(set_clauses)} WHERE user_id = %s"
-            params.append(user_id)
-            cursor.execute(sql, tuple(params))
-            conn.commit()
-
-            if "fullname" in data_to_update: self.controller.fullname = data_to_update["fullname"]
-            messagebox.showinfo("Success", "Profile updated successfully!")
-            return True
-        except mysql.connector.Error as err:
-            if conn: conn.rollback()
-            if err.errno == 1062:
-                if 'username' in err.msg:
-                    messagebox.showerror("Update Error", "Username already exists.")
-                elif 'email' in err.msg:
-                    messagebox.showerror("Update Error", "Email address already registered.")
-                else:
-                    messagebox.showerror("Database Error", f"Duplicate data error:\n{err}")
-            else:
-                messagebox.showerror("Database Error", f"Failed to update profile:\n{err}")
-            return False
-        except Exception as e:
-            if conn: conn.rollback()
-            messagebox.showerror("Error", f"Unexpected error during update: {e}")
-            return False
-        finally:
-            if cursor: cursor.close()
-            if conn and conn.is_connected(): conn.close()
-
-    # --- Navigation & Helpers --- (No changes needed)
+    #---Navigation: Open Print Page---
     def open_printer(self):
         self.controller.show_printer_frame()
 
+    #---Navigation: Open Notification Page---
     def open_notification_py(self):
         self.controller.show_notification_frame()
 
+    #---Navigation: Open Prices Page---
     def open_prices_py(self):
         self.controller.show_prices_frame()
 
+    #---Navigation: Open Help Page---
     def open_help_py(self):
         self.controller.show_help_frame()
 
+    #---Handles Logout---
     def logout(self):
         if messagebox.askyesno("Logout", "Are you sure you want to log out?"):
             self.controller.show_login_frame()
 
+    #---Makes Icon Clickable---
     def make_icon_clickable(self, widget, command):
         widget.bind("<Button-1>", lambda e: command())
         widget.bind("<Enter>", lambda e: self.config(cursor="hand2"))
         widget.bind("<Leave>", lambda e: self.config(cursor=""))
 
+    #---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = create_rounded_rect(self.canvas, x, y, x + w, y + h, radius=12, fill="#FFFFFF", outline="#000000",
                                    width=1)
@@ -348,6 +293,7 @@ class UserFrame(tk.Frame):
             fill="#000000", font=("Inter Bold", 16)
         )
 
+        #---Button Click Event---
         def on_click(event): command() if command else None
 
         for tag in (rect, txt):
@@ -358,6 +304,7 @@ class UserFrame(tk.Frame):
                                  lambda e: (self.canvas.itemconfig(rect, fill="#FFFFFF"), self.config(cursor="")))
         return rect, txt
 
+    #---Toggles Password Show/Hide---
     def toggle_password_visibility(self):
         if self.entries["password"]["state"] == "readonly": return
         if self.password_visible:
@@ -369,7 +316,7 @@ class UserFrame(tk.Frame):
             self.eye_button.config(image=self.eye_open_icon)
             self.password_visible = True
 
-    # --- UPDATED: enter_edit_mode ---
+    #---Enters Edit Mode---
     def enter_edit_mode(self):
         for key, entry in self.entries.items():
             entry.config(state="normal", fg="black")
@@ -380,14 +327,12 @@ class UserFrame(tk.Frame):
                     x1, y1, x2, y2 = self.field_positions["password"]
                     self.eye_button.place(x=x2 - 30, y=y1 + 2, width=24, height=24)
 
-        # --- UPDATED: Only show text if no image exists ---
         if self.pfp_image:
             self.canvas.itemconfigure(self.pfp_text, state="hidden")
         else:
             self.canvas.itemconfigure(self.pfp_text, text="Add a Picture", state="normal",
                                       fill="#000000")
             self.canvas.tag_raise(self.pfp_text)
-        # --- END OF UPDATE ---
 
         for tag in (self.pfp_bg, self.pfp_text, self.pfp_image_id):
             self.canvas.tag_bind(tag, "<Button-1>", self.on_pfp_click)
@@ -401,23 +346,28 @@ class UserFrame(tk.Frame):
         self.canvas.itemconfigure(self.cancel_btn_rect, state="normal")
         self.canvas.itemconfigure(self.cancel_btn_text, state="normal")
 
-    # --- save_changes --- (No changes needed)
+    #---Handles Save Button---
     def save_changes(self):
-        data_to_update = {}
+        other_data_to_update = {}
+        email_to_verify = None
+
         original_data = self.get_user_data(self.controller.user_id)
-        if not original_data: messagebox.showerror("Error", "Could not verify original user data."); return
+        if not original_data:
+            messagebox.showerror("Error", "Could not verify original user data.")
+            return
 
         if self.new_pfp_path:
             try:
                 with open(self.new_pfp_path, 'rb') as f:
                     image_blob = f.read()
-                data_to_update['profile_picture'] = image_blob
+                other_data_to_update['profile_picture'] = image_blob
             except Exception as e:
                 messagebox.showerror("Image Error", f"Could not read image file for saving: {e}")
                 return
 
         for key, entry in self.entries.items():
             new_value = entry.get().strip()
+
             if key == "password":
                 if new_value:
                     if len(new_value) < 8: messagebox.showerror("Error",
@@ -427,43 +377,72 @@ class UserFrame(tk.Frame):
                     if not re.search(r"[a-z]", new_value): messagebox.showerror("Error",
                                                                                 "Password needs lowercase."); return
                     if not re.search(r"\d", new_value): messagebox.showerror("Error", "Password needs digit."); return
-                    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_+=~`\[\]\\';/-]", new_value): messagebox.showerror(
-                        "Error", "Password needs special char."); return
                     if re.search(r"\s", new_value): messagebox.showerror("Error",
                                                                          "Password cannot contain spaces."); return
-                    data_to_update[key] = new_value
+                    other_data_to_update[key] = new_value
+
             elif key == "email":
                 if new_value != original_data.get(key, ""):
                     if not new_value: messagebox.showerror("Error", "Email cannot be empty."); return
-                    if not new_value.lower().endswith(("@gmail.com", "@yahoo.com")): messagebox.showerror("Error",
-                                                                                                          "Email must end with @gmail.com or @yahoo.com"); return
-                    data_to_update[key] = new_value
+                    if not new_value.lower().endswith(("@gmail.com", "@yahoo.com")):
+                        messagebox.showerror("Error", "Email must end with @gmail.com or @yahoo.com");
+                        return
+                    email_to_verify = new_value
+
             elif key == "username":
                 if new_value != original_data.get(key, ""):
                     if not new_value: messagebox.showerror("Error", "Username cannot be empty."); return
-                    data_to_update[key] = new_value
+                    other_data_to_update[key] = new_value
+
             elif key == "contact":
                 if new_value != original_data.get(key, ""):
                     if not new_value: messagebox.showerror("Error", "Contact cannot be empty."); return
-                    if not new_value.isdigit() or len(new_value) < 10: messagebox.showerror("Error",
-                                                                                            "Invalid contact number format."); return
-                    data_to_update[key] = new_value
-            else:  # fullname
+                    if not new_value.isdigit() or len(new_value) < 10:
+                        messagebox.showerror("Error", "Invalid contact number format.");
+                        return
+                    other_data_to_update[key] = new_value
+
+            else:
                 if new_value != original_data.get(key, ""):
                     if not new_value: messagebox.showerror("Error", f"{key.capitalize()} cannot be empty."); return
-                    data_to_update[key] = new_value
+                    other_data_to_update[key] = new_value
 
-        if not data_to_update:
+        if email_to_verify:
+            print(f"Email change detected. New email: {email_to_verify}")
+
+            otp_code = f"{random.randint(0, 999999):06d}"
+            try:
+                email_sent = send_verification_email(
+                    email_to_verify, otp_code,
+                    email_subject="Verify Your New Email",
+                    context="email change"
+                )
+            except Exception as e:
+                messagebox.showerror("Email Error", f"Failed to send verification email: {e}")
+                return
+
+            if email_sent:
+                self.controller.temp_otp = otp_code
+                self.controller.temp_new_email = email_to_verify
+                self.controller.temp_other_profile_changes = other_data_to_update
+
+                self.controller.show_otp2_frame()
+            else:
+                messagebox.showerror("Email Error",
+                                     "Failed to send verification email. Please check the email address and try again.")
+
+        elif other_data_to_update:
+            print("Email not changed. Saving other data.")
+            if update_user_data_in_db(self.controller, self.controller.user_id, other_data_to_update):
+                self.new_pfp_path = None
+                self.load_user_data()
+                self.cancel_edit()
+
+        else:
             messagebox.showinfo("No Changes", "No profile information was modified.")
             self.cancel_edit()
-            return
 
-        if self.update_user_data(self.controller.user_id, data_to_update):
-            self.new_pfp_path = None
-            self.load_user_data()
-            self.cancel_edit()
-
-    # --- cancel_edit --- (No changes needed)
+    #---Handles Cancel Button---
     def cancel_edit(self):
         self.new_pfp_path = None
         for tag in (self.pfp_bg, self.pfp_text, self.pfp_image_id):
@@ -472,7 +451,7 @@ class UserFrame(tk.Frame):
             self.canvas.tag_unbind(tag, "<Leave>")
         self.canvas.config(cursor="")
 
-        self.load_user_data() # This will reload the original PFP and hide/show text correctly
+        self.load_user_data()
 
         for key, entry in self.entries.items():
             entry.config(state="readonly", readonlybackground="#FFFAFA", fg="#555555")
@@ -488,9 +467,8 @@ class UserFrame(tk.Frame):
         self.canvas.itemconfigure(self.edit_btn_rect, state="normal")
         self.canvas.itemconfigure(self.edit_btn_text, state="normal")
 
-    # --- on_pfp_click --- (No changes needed)
+    #---Handles Profile Picture Click---
     def on_pfp_click(self, event=None):
-        """Opens a file dialog to select a profile picture."""
         file_types = [
             ('Image Files', '*.png *.jpg *.jpeg'),
             ('PNG files', '*.png'),
@@ -506,42 +484,33 @@ class UserFrame(tk.Frame):
         self.new_pfp_path = filepath
         self.display_profile_picture_from_file(filepath)
 
-    # --- UPDATED: display_profile_picture_from_file ---
+    #---Displays PFP From File---
     def display_profile_picture_from_file(self, filepath):
-        """Loads, rounds, resizes, and displays an image from a file."""
         try:
             img = Image.open(filepath)
             img = crop_and_mask_circle(img, self.pfp_display_size)
 
-            self.pfp_image = ImageTk.PhotoImage(img) # Set the image reference
+            self.pfp_image = ImageTk.PhotoImage(img)
             self.canvas.itemconfigure(self.pfp_image_id, image=self.pfp_image)
-
-            # --- UPDATED: Always hide text when an image is displayed ---
             self.canvas.itemconfigure(self.pfp_text, state="hidden")
-            # --- END OF UPDATE ---
 
         except Exception as e:
             messagebox.showerror("Image Error", f"Failed to load image: {e}")
             self.new_pfp_path = None
-            self.pfp_image = None # Ensure reference is cleared on error
+            self.pfp_image = None
 
-    # --- UPDATED: display_profile_picture_from_blob ---
+    #---Displays PFP From Database---
     def display_profile_picture_from_blob(self, blob_data):
-        """Loads, rounds, resizes, and displays an image from BLOB data."""
         try:
             img_data = io.BytesIO(blob_data)
             img = Image.open(img_data)
             img = crop_and_mask_circle(img, self.pfp_display_size)
 
-            self.pfp_image = ImageTk.PhotoImage(img) # Set the image reference
+            self.pfp_image = ImageTk.PhotoImage(img)
             self.canvas.itemconfigure(self.pfp_image_id, image=self.pfp_image)
-
-            # --- UPDATED: Always hide text when an image is displayed ---
             self.canvas.itemconfigure(self.pfp_text, state="hidden")
-            # --- END OF UPDATE ---
-
         except Exception as e:
             print(f"Error loading PFP from BLOB: {e}")
             self.canvas.itemconfigure(self.pfp_image_id, image="")
             self.canvas.itemconfigure(self.pfp_text, text="Picture", state="normal")
-            self.pfp_image = None # Ensure reference is cleared on error
+            self.pfp_image = None

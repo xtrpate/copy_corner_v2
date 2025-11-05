@@ -24,6 +24,7 @@ from register_frame import RegisterFrame
 from otp_frame import OTPFrame
 from forgot_frame import ForgotFrame
 from otp1_frame import OTP1Frame
+from otp2_frame import  OTP2Frame
 
 
 class MainApplication(tk.Tk):
@@ -108,7 +109,7 @@ class MainApplication(tk.Tk):
         frame_sizes = {
             "AdminDashboardFrame": (905, 534),
             "AdminUserFrame": (905, 570),
-            "AdminPrintFrame": (1305, 570),
+            "AdminPrintFrame": (1105, 570),
             "AdminReportFrame": (905, 575),
             "AdminNotificationFrame": (905, 567),
             "AdminInventoryFrame": (880, 550),
@@ -117,6 +118,7 @@ class MainApplication(tk.Tk):
             "RegisterFrame": (851, 604),
             "OTPFrame": (400, 500),
             "OTP1Frame": (400, 500),
+            "OTP2Frame": (400, 500),
             "ForgotFrame": (859, 534),
             "PrinterFrame": (871, 540),
             "UserFrame": (871, 540),
@@ -303,6 +305,9 @@ class MainApplication(tk.Tk):
 
     def show_otp1_frame(self):
         self.show_frame(OTP1Frame)
+
+    def show_otp2_frame(self):
+        self.show_frame(OTP2Frame)
 
 
 if __name__ == "__main__":

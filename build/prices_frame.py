@@ -18,7 +18,7 @@ class PricesFrame(tk.Frame):
         self.controller = controller
 
         # --- Resize window for this specific frame ---
-        controller.geometry("829x504") # Slightly smaller than default
+        controller.geometry("829x504")
 
         canvas = Canvas(
             self, bg="#FFFFFF", height=504, width=829,
@@ -57,14 +57,15 @@ class PricesFrame(tk.Frame):
         canvas.create_text(71.0, 372.0, anchor="nw", text="Full Colored:", fill="#000000", font=("Inter Bold", -20))
 
         # Price rows
+        # ---B&W Prize---
         canvas.create_text(87.0, 162.0, anchor="nw", text="Short Size                ₱3.00/per page", fill="#000000", font=("Inter Bold", -14))
         canvas.create_text(87.0, 187.0, anchor="nw", text="A4 Size                     ₱3.00/per page", fill="#000000", font=("Inter Bold", -14))
         canvas.create_text(87.0, 212.0, anchor="nw", text="Long Size                 ₱3.00/per page", fill="#000000", font=("Inter Bold", -14))
+        # ---Partially Colored Prize---
         canvas.create_text(86.0, 282.0, anchor="nw", text="Short Size                ₱7.00/per page", fill="#000000", font=("Inter Bold", -14))
         canvas.create_text(86.0, 306.0, anchor="nw", text="A4  Size                     ₱7.00/per page", fill="#000000", font=("Inter Bold", -14))
-        # --- This is the price I will use: ₱8.00 ---
         canvas.create_text(86.0, 332.0, anchor="nw", text="Long  Size                 ₱8.00/per page", fill="#000000", font=("Inter Bold", -14))
-        # ---
+        # ---Colored Prize---
         canvas.create_text(88.0, 402.0, anchor="nw", text="Short Size                ₱10.00/per page", fill="#000000", font=("Inter Bold", -14))
         canvas.create_text(88.0, 425.0, anchor="nw", text="A4  Size                     ₱10.00/per page", fill="#000000", font=("Inter Bold", -14))
         canvas.create_text(88.0, 448.0, anchor="nw", text="Long  Size                 ₱15.00/per page", fill="#000000", font=("Inter Bold", -14))
@@ -85,8 +86,5 @@ class PricesFrame(tk.Frame):
         button_1.place(x=726.0, y=446.0, width=71.0, height=31.0)
 
     def go_back(self):
-        """Resizes window and goes back to the main Printer frame."""
-        # Reset window size to default
         self.controller.center_window(self.controller.default_width, self.controller.default_height)
-        # Show the printer frame
         self.controller.show_frame(PrinterFrame)
