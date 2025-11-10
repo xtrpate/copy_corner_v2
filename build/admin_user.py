@@ -105,16 +105,16 @@ class AdminUserFrame(tk.Frame):
         self.canvas.create_text(276.0, 387.0, anchor="nw", text="Contact:", fill="#000000", font=("Inter", 12 * -1))
         self.canvas.create_text(276.0, 407.0, anchor="nw", text="Password:", fill="#000000", font=("Inter", 12 * -1))
 
-        self.create_rounded_button(421.0, 451.0, 102.0, 25.0, "Reset Password", self.reset_password,
-                                   fill="#000000", text_color="#FFFFFF", outline_color="#000000", outline_width=1)
+        # self.create_rounded_button(421.0, 451.0, 102.0, 25.0, "Reset Password", self.reset_password,
+        #                            fill="#000000", text_color="#FFFFFF", outline_color="#000000", outline_width=1)
         self.create_rounded_button(533.0, 451.0, 88.0, 25.0, "Disable User", self.disable_selected_user,
                                    fill="#DC3545", text_color="#FFFFFF", outline_color="#A72A36", outline_width=1)
         self.create_rounded_button(533.0, 491.0, 88.0, 25.0, "Activate User", self.activate_selected_user,
                                    fill="#28A745", text_color="#FFFFFF", outline_color="#1D7A32", outline_width=1)
 
-        self.canvas.create_text(286.0, 451.0, anchor="nw", text="Recent Activity", fill="#000000",
-                                font=("Inter Bold", 15 * -1))
-        round_rectangle(self.canvas, 276.0, 475.0, 420.0, 525.0, r=5, fill="#F8F9FA", outline="#E0E0E0")
+        # self.canvas.create_text(286.0, 451.0, anchor="nw", text="Recent Activity", fill="#000000",
+        #                         font=("Inter Bold", 15 * -1))
+        # round_rectangle(self.canvas, 276.0, 475.0, 420.0, 525.0, r=5, fill="#F8F9FA", outline="#E0E0E0")
 
         self.canvas.create_rectangle(635.0, 37.0, 638.0, 542.0, fill="#000000", outline="#000000")
         self.canvas.create_text(646.0, 55.0, anchor="nw", text="Search", fill="#000000", font=("Inter Bold", 14 * -1))
