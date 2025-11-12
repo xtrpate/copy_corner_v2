@@ -6,12 +6,11 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from utils import get_db_connection, round_rectangle
 
-
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame4"
 
 
-#---Asset Path Constructor---
+# ---Asset Path Constructor---
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
     if not asset_file.is_file():
@@ -20,7 +19,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminDashboardFrame(tk.Frame):
-    #---Initializes Dashboard UI---
+    # ---Initializes Dashboard UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -95,8 +94,8 @@ class AdminDashboardFrame(tk.Frame):
         self.canvas.create_text(286, header_text_y, anchor="nw", text="Req ID", fill="#000000", font=("Inter Bold", 12))
         self.canvas.create_text(360, header_text_y, anchor="nw", text="Username", fill="#000000",
                                 font=("Inter Bold", 12))
-        self.canvas.create_text(484, header_text_y, anchor="nw", text="Pages", fill="#000000", font=("Inter Bold", 12))
-        self.canvas.create_text(545, header_text_y, anchor="nw", text="Status", fill="#000000", font=("Inter Bold", 12))
+        self.canvas.create_text(484, header_text_y, anchor="nw", text="Files", fill="#000000", font=("Inter Bold", 12))
+        self.canvas.create_text(575, header_text_y, anchor="nw", text="Status", fill="#000000", font=("Inter Bold", 12))
 
         list_y = header_y + 25
         list_h = req_y2 - list_y - 2
@@ -187,12 +186,12 @@ class AdminDashboardFrame(tk.Frame):
 
         self.load_dashboard_data()
 
-    #---Loads Dashboard Data---
+    # ---Loads Dashboard Data---
     def load_dashboard_data(self):
         self.date_filter_var.set("Today")
         self.apply_date_filter()
 
-    #---Applies Date Filter---
+    # ---Applies Date Filter---
     def apply_date_filter(self):
         filter_period = self.date_filter_var.get()
         today = date.today()
@@ -218,7 +217,7 @@ class AdminDashboardFrame(tk.Frame):
         self.fetch_and_display_requests(start_date, end_date)
         self.fetch_and_display_alerts()
 
-    #---Updates Statistics---
+    # ---Updates Statistics---
     def update_stat_boxes(self, start_date, end_date):
         conn = None
         cursor = None
@@ -313,7 +312,7 @@ class AdminDashboardFrame(tk.Frame):
             if conn and conn.is_connected():
                 conn.close()
 
-    #---Fetches Print Requests---
+    # ---Fetches Print Requests---
     def fetch_and_display_requests(self, start_date, end_date):
         for widget in self.request_content_frame.winfo_children():
             widget.destroy()
@@ -336,8 +335,9 @@ class AdminDashboardFrame(tk.Frame):
                 params = [start_date, end_date]
 
             sql_query = f"""
-                SELECT pj.job_id, u.username, pj.pages, pj.status, pj.payment_method
+                SELECT pj.job_id, u.username, f.file_name, pj.status, pj.payment_method
                 FROM print_jobs pj LEFT JOIN users u ON pj.user_id = u.user_id
+                                LEFT JOIN files f ON pj.file_id = f.file_id
                 {where_clause}
                 ORDER BY
                     CASE
@@ -357,7 +357,7 @@ class AdminDashboardFrame(tk.Frame):
 
             self.request_content_frame.columnconfigure(0, minsize=74)
             self.request_content_frame.columnconfigure(1, minsize=124)
-            self.request_content_frame.columnconfigure(2, minsize=61)
+            self.request_content_frame.columnconfigure(2, minsize=85)
             self.request_content_frame.columnconfigure(3, minsize=115)
 
             color_map = {
@@ -374,7 +374,11 @@ class AdminDashboardFrame(tk.Frame):
             for i, request in enumerate(requests):
                 job_id = request.get('job_id', 'N/A')
                 username = request.get('username', 'N/A')
-                pages = request.get('pages', 'N/A')
+                # Retrieve file_name from the dictionary
+                file_name_full = request.get('file_name', 'N/A')
+                # Truncate file name for display if necessary
+                files_display = file_name_full[:15] + "..." if len(file_name_full) > 15 else file_name_full
+
                 status = str(request.get('status', 'N/A'))
                 status_color = color_map.get(status, "#333333")
                 bg_color = "#FFFFFF" if i % 2 == 0 else "#F8F9FA"
@@ -383,17 +387,18 @@ class AdminDashboardFrame(tk.Frame):
                                font=("Inter", 11))
                 lbl_user = Label(self.request_content_frame, text=username, anchor="w", bg=bg_color, fg="#333333",
                                  font=("Inter", 11))
-                lbl_pages = Label(self.request_content_frame, text=pages, anchor="w", bg=bg_color, fg="#333333",
+                # Use the truncated file name for display
+                lbl_files = Label(self.request_content_frame, text=files_display, anchor="w", bg=bg_color, fg="#333333",
                                   font=("Inter", 11))
                 lbl_status = Label(self.request_content_frame, text=status, anchor="w", bg=bg_color, fg=status_color,
                                    font=("Inter Bold", 11))
 
                 lbl_id.grid(row=i, column=0, sticky="ew", padx=(10, 0))
                 lbl_user.grid(row=i, column=1, sticky="ew")
-                lbl_pages.grid(row=i, column=2, sticky="ew")
+                lbl_files.grid(row=i, column=2, sticky="ew")
                 lbl_status.grid(row=i, column=3, sticky="ew")
 
-                for widget in (lbl_id, lbl_user, lbl_pages, lbl_status):
+                for widget in (lbl_id, lbl_user, lbl_files, lbl_status):
                     widget.bind("<Enter>", lambda e: self._bind_mousewheel(e, self.request_list_canvas))
                     widget.bind("<Leave>", lambda e: self._unbind_mousewheel(e))
 
@@ -411,7 +416,7 @@ class AdminDashboardFrame(tk.Frame):
         self.request_content_frame.update_idletasks()
         self.on_frame_configure(self.request_list_canvas)
 
-    #---Fetches Inventory Alerts---
+    # ---Fetches Inventory Alerts---
     def fetch_and_display_alerts(self):
         for widget in self.alert_content_frame.winfo_children():
             widget.destroy()
@@ -486,24 +491,24 @@ class AdminDashboardFrame(tk.Frame):
         self.alert_content_frame.update_idletasks()
         self.on_frame_configure(self.alert_list_canvas)
 
-    #---Creates Sidebar Button---
+    # ---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
-        #---Button Click Event---
+        # ---Button Click Event---
         def on_click(event):
             if command:
                 command()
 
-        #---Button Hover Event---
+        # ---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
-        #---Button Leave Event---
+        # ---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -514,11 +519,11 @@ class AdminDashboardFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
-    #---Updates Scrollable Area---
+    # ---Updates Scrollable Area---
     def on_frame_configure(self, canvas):
         canvas.configure(scrollregion=canvas.bbox("all"))
 
-    #---Handles Mouse Wheel---
+    # ---Handles Mouse Wheel---
     def _on_mousewheel(self, event, canvas):
         scroll_info = canvas.yview()
         if scroll_info[0] == 0.0 and scroll_info[1] == 1.0:
@@ -531,39 +536,39 @@ class AdminDashboardFrame(tk.Frame):
             if scroll_info[1] < 1.0:
                 canvas.yview_scroll(1, "units")
 
-    #---Binds Mouse Wheel---
+    # ---Binds Mouse Wheel---
     def _bind_mousewheel(self, event, canvas):
         self.bind_all("<MouseWheel>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-4>", lambda ev: self._on_mousewheel(ev, canvas))
         self.bind_all("<Button-5>", lambda ev: self._on_mousewheel(ev, canvas))
 
-    #---Unbinds Mouse Wheel---
+    # ---Unbinds Mouse Wheel---
     def _unbind_mousewheel(self, event):
         self.unbind_all("<MouseWheel>")
         self.unbind_all("<Button-4>")
         self.unbind_all("<Button-5>")
 
-    #---Navigation: Open User Page---
+    # ---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
-    #---Navigation: Open Print Page---
+    # ---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
-    #---Navigation: Open Report Page---
+    # ---Navigation: Open Report Page---
     def open_admin_report(self):
         self.controller.show_admin_report()
 
-    #---Navigation: Open Notification Page---
+    # ---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
-    #---Navigation: Open Inventory Page---
+    # ---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
-    #---Handles Logout---
+    # ---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure you want to log out?", parent=self):
             self.controller.show_login_frame()

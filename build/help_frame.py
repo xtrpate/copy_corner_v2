@@ -93,7 +93,7 @@ class HelpFrame(tk.Frame):
 
         rounded_box(canvas, 22.0, 16.0, 837.0, 518.0, r=0, fill=WHITE, outline=BLACK, width=2)
         rounded_box(canvas, 22.0, 16.0, 837.0, 101.0, r=0, fill=BLACK, outline=BLACK, width=2)
-        canvas.create_text((22 + 837) / 2, (16 + 101) / 2, text="Help", fill=WHITE, font=("Inter Bold", -40),
+        canvas.create_text((22 + 237) / 2, (16 + 101) / 2, text="Help", fill=WHITE, font=("Inter Bold", -40),
                            anchor="center")
         canvas.create_rectangle(239.0, 16.0, 240.0, 518.0, fill=BLACK, outline="")
 

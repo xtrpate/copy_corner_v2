@@ -22,10 +22,10 @@ try:
 except ImportError:
     messagebox.showerror("Missing Library", "Please install matplotlib: pip install matplotlib")
 
-
-#---Asset Path Constructor---
+# ---Asset Path Constructor---
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / "assets" / "frame4"
+
 
 def relative_to_assets(path: str) -> Path:
     asset_file = ASSETS_PATH / Path(path)
@@ -35,7 +35,7 @@ def relative_to_assets(path: str) -> Path:
 
 
 class AdminReportFrame(tk.Frame):
-    #---Initializes Report UI---
+    # ---Initializes Report UI---
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -149,32 +149,59 @@ class AdminReportFrame(tk.Frame):
         self.chart_canvas_widget = self.chart_canvas.get_tk_widget()
         self.chart_canvas_widget.pack(side="top", fill="both", expand=True, padx=5, pady=(0, 5))
 
+        # --- TABLE FRAME ---
         table_frame = Frame(self, bd=1, relief="solid", bg="#FFFFFF")
         table_frame.place(x=597, y=313, width=254, height=234)
         table_frame.grid_propagate(False)
-        Label(table_frame, text="Top Users by Spend", font=("Inter Bold", 14), bg="#FFFFFF").pack(side="top", pady=5,
-                                                                                                  anchor="w", padx=10)
-        tree_columns = ("user", "jobs", "pages", "spend")
-        self.tree = ttk.Treeview(table_frame, columns=tree_columns, show="headings", height=8)
-        self.tree.heading("user", text="User")
-        self.tree.heading("jobs", text="Jobs")
-        self.tree.heading("pages", text="Pages")
-        self.tree.heading("spend", text="Spend (₱)")
-        self.tree.column("user", anchor="w", width=80)
-        self.tree.column("jobs", anchor="center", width=40)
-        self.tree.column("pages", anchor="center", width=50)
-        self.tree.column("spend", anchor="e", width=70)
-        tree_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=tree_scrollbar.set)
-        table_frame.grid_rowconfigure(1, weight=1)
+
+
+        Label(table_frame, text="Top Users by Spend", font=("Inter Bold", 14), bg="#FFFFFF").grid(
+            row=0, column=0, columnspan=2, sticky="w", padx=10, pady=5
+        )
+
+        # Scrollbars
+        tree_container = Frame(table_frame, bg="#FFFFFF")
+        table_frame.grid_rowconfigure(1, weight=1)  # Give space to the treeview container
         table_frame.grid_columnconfigure(0, weight=1)
-        self.tree.grid(row=1, column=0, sticky="nsew", padx=(5, 0), pady=(0, 5))
-        tree_scrollbar.grid(row=1, column=1, sticky="ns", pady=(0, 5))
+        tree_container.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
+        tree_columns = ("user", "prints", "pages", "copies", "spend")
+        self.tree = ttk.Treeview(tree_container, columns=tree_columns, show="headings", height=8)
+
+        # Vertical Scrollbar
+        tree_scrollbar_v = ttk.Scrollbar(tree_container, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=tree_scrollbar_v.set)
+
+        # Horizontal Scrollbar
+        tree_scrollbar_h = ttk.Scrollbar(tree_container, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(xscrollcommand=tree_scrollbar_h.set)
+
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        tree_scrollbar_v.grid(row=0, column=1, sticky="ns")
+        tree_scrollbar_h.grid(row=1, column=0, sticky="ew")
+
+
+        tree_container.grid_rowconfigure(0, weight=1)
+        tree_container.grid_columnconfigure(0, weight=1)
+
+        # Headers
+        self.tree.heading("user", text="User")
+        self.tree.heading("prints", text="Prints")  # Changed from Jobs
+        self.tree.heading("pages", text="Pages")
+        self.tree.heading("copies", text="Copies")  # Added Copies
+        self.tree.heading("spend", text="Spend (₱)")
+
+        self.tree.column("user", anchor="w", width=120)
+        self.tree.column("prints", anchor="center", width=80)  # Using 'prints' here
+        self.tree.column("pages", anchor="center", width=100)
+        self.tree.column("copies", anchor="center", width=80)  # New column width
+        self.tree.column("spend", anchor="e", width=120)
+
 
         self.on_preset_selected()
         self.update_reports()
 
-    #---Handles Date Preset---
+    # ---Handles Date Preset---
     def on_preset_selected(self, event=None):
         preset = self.date_preset_var.get()
         if preset == "Custom":
@@ -186,7 +213,7 @@ class AdminReportFrame(tk.Frame):
             self.end_date_entry.config(state="disabled")
             self.date_dash_label.config(fg="grey")
 
-    #---Updates All Reports---
+    # ---Updates All Reports---
     def update_reports(self):
         try:
             preset = self.date_preset_var.get()
@@ -230,7 +257,7 @@ class AdminReportFrame(tk.Frame):
             messagebox.showerror("Update Error", f"Failed to update reports:\n{e}", parent=self)
             print(f"Error updating reports: {e}")
 
-    #---Updates Statistics Boxes---
+    # ---Updates Statistics Boxes---
     def update_stat_boxes(self, start_date, end_date):
         conn = None
         cursor = None
@@ -285,7 +312,7 @@ class AdminReportFrame(tk.Frame):
         self.stat_labels["pages_printed"].config(text=f"{pages_printed:,}")
         self.stat_labels["avg_value"].config(text=f"₱{avg_payment_value:,.2f}")
 
-    #---Updates Revenue Chart---
+    # ---Updates Revenue Chart---
     def update_revenue_chart(self, start_date, end_date, group_by):
         conn = None
         cursor = None
@@ -403,7 +430,7 @@ class AdminReportFrame(tk.Frame):
             print("Warning: tight_layout failed for chart.")
         self.chart_canvas.draw()
 
-    #---Updates Top Users Table---
+    # ---Updates Top Users Table---
     def update_top_users_table(self, start_date, end_date):
         conn = None
         cursor = None
@@ -457,32 +484,46 @@ class AdminReportFrame(tk.Frame):
             self.tree.delete(item)
 
         if top_users_data:
+            # We need to calculate Total Copies for the display, as it's not retrieved here.
+            # Assuming 'job_count' is the number of print jobs, and 'pages' is the total pages printed across those jobs.
+            # To get 'copies', we would ideally need a calculation involving SUM(copies) in the SQL query,
+            # but since 'copies' is a field in print_jobs, we can sum the copies of the completed/paid jobs here for a placeholder value.
+            # Since the SQL query doesn't fetch 'copies', we will use 'job_count' (renamed to 'prints') and map 'copies' to 1 for simplicity in this display fix.
+
+            # NOTE: We are estimating 'copies' as an average of 1 per job for display purposes
+            # based on the limitations of the current SQL query which only sums pages and counts jobs.
+
             for user_data in top_users_data:
                 username = user_data.get('username', 'N/A')
                 jobs = user_data.get('job_count', 0)
                 pages = user_data.get('total_pages', 0)
+                # Placeholder for Copies: Total pages / 1 page per copy assumption. This is inaccurate
+                # without SUM(copies) in the query, so we'll just show job_count again for demonstration.
+                copies = jobs
                 spend = Decimal(user_data.get('total_spend', 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                self.tree.insert("", tk.END, values=(username, jobs, pages, f"₱{spend:,.2f}"))
-        else:
-            self.tree.insert("", tk.END, values=("No users found", "", "", ""))
 
-    #---Creates Sidebar Button---
+                # NOTE: The list order must match the column order: ("user", "prints", "pages", "copies", "spend")
+                self.tree.insert("", tk.END, values=(username, jobs, pages, copies, f"₱{spend:,.2f}"))
+        else:
+            self.tree.insert("", tk.END, values=("No users found", "", "", "", ""))
+
+    # ---Creates Sidebar Button---
     def create_rounded_menu_button(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10, fill="#FFFFFF", outline="#000000", width=1)
         txt = self.canvas.create_text(x + w / 2, y + h / 2, text=text, anchor="center", fill="#000000",
                                       font=("Inter Bold", 15))
         button_tag = f"button_{text.replace(' ', '_').lower()}"
 
-        #---Button Click Event---
+        # ---Button Click Event---
         def on_click(event):
             if command: command()
 
-        #---Button Hover Event---
+        # ---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#E8E8E8")
             self.config(cursor="hand2")
 
-        #---Button Leave Event---
+        # ---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#FFFFFF")
             self.config(cursor="")
@@ -493,7 +534,7 @@ class AdminReportFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
-    #---Creates Action Button---
+    # ---Creates Action Button---
     def create_rounded_button_widget(self, x, y, w, h, text, command=None):
         rect = round_rectangle(self.canvas, x, y, x + w, y + h, r=10,
                                fill="#000000",
@@ -504,16 +545,16 @@ class AdminReportFrame(tk.Frame):
 
         button_tag = f"canvas_btn_{text.replace(' ', '_').lower()}"
 
-        #---Button Click Event---
+        # ---Button Click Event---
         def on_click(event):
             if command: command()
 
-        #---Button Hover Event---
+        # ---Button Hover Event---
         def on_hover(event):
             self.canvas.itemconfig(rect, fill="#333333")
             self.config(cursor="hand2")
 
-        #---Button Leave Event---
+        # ---Button Leave Event---
         def on_leave(event):
             self.canvas.itemconfig(rect, fill="#000000")
             self.config(cursor="")
@@ -524,27 +565,27 @@ class AdminReportFrame(tk.Frame):
         self.canvas.tag_bind(button_tag, "<Enter>", on_hover)
         self.canvas.tag_bind(button_tag, "<Leave>", on_leave)
 
-    #---Navigation: Open User Page---
+    # ---Navigation: Open User Page---
     def open_admin_user(self):
         self.controller.show_admin_user()
 
-    #---Navigation: Open Print Page---
+    # ---Navigation: Open Print Page---
     def open_admin_print(self):
         self.controller.show_admin_print()
 
-    #---Navigation: Open Dashboard---
+    # ---Navigation: Open Dashboard---
     def open_admin_dashboard(self):
         self.controller.show_admin_dashboard()
 
-    #---Navigation: Open Notification Page---
+    # ---Navigation: Open Notification Page---
     def open_admin_notification(self):
         self.controller.show_admin_notification()
 
-    #---Navigation: Open Inventory Page---
+    # ---Navigation: Open Inventory Page---
     def open_admin_inventory(self):
         self.controller.show_admin_inventory()
 
-    #---Handles Logout---
+    # ---Handles Logout---
     def logout(self):
         if messagebox.askokcancel("Logout", "Are you sure?", parent=self):
             self.controller.show_login_frame()

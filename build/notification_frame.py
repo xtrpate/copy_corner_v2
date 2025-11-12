@@ -74,10 +74,14 @@ class NotificationFrame(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
+        # self.grid(row=0, column=0, sticky="nsew")
+        # parent.grid_rowconfigure(0, weight=1)
+        # parent.grid_columnconfigure(0, weight=1)
+
         self.user_id = controller.user_id
         self.fullname = controller.fullname
 
-        self.canvas = Canvas(self, bg=WHITE, height=504, width=829, bd=0, highlightthickness=0, relief="ridge")
+        self.canvas = Canvas(self, bg=WHITE, height=540, width=871, bd=0, highlightthickness=0, relief="ridge")
         self.canvas.place(x=0, y=0)
 
         try:
@@ -89,10 +93,14 @@ class NotificationFrame(tk.Frame):
             messagebox.showerror("Asset Error", f"Could not load assets for NotificationFrame:\n{e}")
             return
 
-        self.canvas.create_rectangle(0, 0, 829, 504, fill=WHITE, outline="")
-        self.canvas.create_rectangle(0, 0, 829, 85, fill=BLACK, outline="")
-        self.canvas.create_text(228, 17, anchor="nw", text="Notifications", fill=WHITE, font=("Inter Bold", -36))
-        self.canvas.create_rectangle(209, -1, 210, 504, fill=BLACK, outline="")
+
+        #BODY
+        self.canvas.create_rectangle(0, 0, 879, 540, fill=WHITE, outline="")
+        #HEADER
+        self.canvas.create_rectangle(0, 0, 879, 85, fill=BLACK, outline="")
+
+        self.canvas.create_text(88, 17, anchor="nw", text="Notifications", fill=WHITE, font=("Inter Bold", -36))
+        self.canvas.create_rectangle(209, 85, 210, 540, fill=BLACK, outline="")
 
         Y_START = 129
         BTN_H = 38
@@ -194,32 +202,65 @@ class NotificationFrame(tk.Frame):
                 if 'cursor' in locals() and cursor: cursor.close()
                 conn.close()
 
-    # ---Deletes All *Personal* Notifications---
+    # ---Deletes All Notifications---
     def clear_all_notifications(self):
-        if self.user_id is None: return
-
-        # Ask for confirmation before deleting
-        if not messagebox.askyesno("Confirm Clear",
-                                   "Are you sure you want to delete ALL your personal notifications?\nThis action cannot be undone."):
+        if self.user_id is None:
             return
 
         conn = get_db_connection()
-        if not conn: return
+        if not conn:
+            return
+
         try:
             cursor = conn.cursor()
-            # This query ONLY targets personal notifications for this user, not global (user_id IS NULL) ones
+            cursor.execute("SELECT COUNT(*) FROM notifications WHERE user_id = %s", (self.user_id,))
+            (notif_count,) = cursor.fetchone()
+
+            if notif_count == 0:
+                messagebox.showinfo("No Notifications", "There are no notifications to clear.")
+                return
+        except mysql.connector.Error as err:
+            messagebox.showerror("Database Error", f"Error checking notifications:\n{err}")
+            return
+        finally:
+            if conn and conn.is_connected():
+                if 'cursor' in locals() and cursor:
+                    cursor.close()
+                conn.close()
+
+        if not messagebox.askyesno(
+                "Confirm Clear",
+                "Are you sure you want to delete all  notifications?\nThis action cannot be undone."
+        ):
+            return
+
+        conn = get_db_connection()
+        if not conn:
+            return
+
+        try:
+            cursor = conn.cursor()
             query = "DELETE FROM notifications WHERE user_id = %s"
             cursor.execute(query, (self.user_id,))
             affected_rows = cursor.rowcount
             conn.commit()
-            messagebox.showinfo("Notifications Cleared",
-                                f"{affected_rows} personal notifications deleted." if affected_rows > 0 else "No personal notifications to delete.")
+
+            messagebox.showinfo(
+                "Notifications Cleared",
+                f"{affected_rows} personal notifications deleted."
+                if affected_rows > 0
+                else "No personal notifications to delete."
+            )
+
             self.load_notifications()
+
         except mysql.connector.Error as err:
             messagebox.showerror("Database Error", f"Error clearing notifications: {err}")
+
         finally:
             if conn and conn.is_connected():
-                if 'cursor' in locals() and cursor: cursor.close()
+                if 'cursor' in locals() and cursor:
+                    cursor.close()
                 conn.close()
 
     # ---Shows Message Popup---
